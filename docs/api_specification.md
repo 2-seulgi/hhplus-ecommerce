@@ -15,7 +15,7 @@ http://localhost:8080/api/v1
   "error": "Conflict",
   "code": "OUT_OF_STOCK",
   "message": "재고가 부족합니다",
-  "path": "/api/v1/orders/123/payment"
+  "path": "/api/v1/users/1/orders/123/payment"
 }
 ```
 
@@ -62,15 +62,18 @@ http://localhost:8080/api/v1
 
 **Description:** 포인트를 충전합니다.
 
+**Request Headers:**
+```
+Idempotency-Key: charge-<uuid> 
+```
+
 **Path Parameters:**
 - `userId`: 회원 ID
 
 **Request Body:**
 ```json
 {
-  "amount": 10000,
-  "idempotencyKey": "charge-uuid"
-  
+  "amount": 10000
 }
 ```
 
@@ -112,8 +115,8 @@ http://localhost:8080/api/v1
 ```json
 {
   "content": [
-    { "pointId": 1, "type": "CHARGE", "amount": 10000, "balance": 60000, "createdAt": "2025-10-29T10:30:00Z" },
-    { "pointId": 2, "type": "USE",    "amount":  5000, "balance": 55000, "createdAt": "2025-10-29T09:00:00Z" }
+    { "pointId": 1, "pointType": "CHARGE", "amount": 10000, "balance": 60000, "createdAt": "2025-10-29T10:30:00Z" },
+    { "pointId": 2, "pointType": "USE",    "amount":  5000, "balance": 55000, "createdAt": "2025-10-29T09:00:00Z" }
   ],
   "totalElements": 50, "totalPages": 3, "size": 20, "number": 0, "hasNext": true, "hasPrevious": false
 }
@@ -453,7 +456,7 @@ Response: 해당 상품이 삭제된 전체 장바구니
 **Error Responses:**
 - `400 Bad Request` - 장바구니가 비어있음
 - `404 Not Found` - 존재하지 않는 회원 ID
-- `409 Conflict` - 재고 부족
+- `409 OUT_OF_STOCK` — 주문 생성 시점에 재고가 0인 상품이 포함된 경우 주문 생성 거부(실제 재고 차감은 결제 시점)
 
 ---
 
@@ -561,9 +564,10 @@ Idempotency-Key: pay-<uuid>   // 필수, 이중 결제 방지
 - `402 Payment Required` - 포인트 부족
   ```json
   {
-    "timestamp": "2025-10-29T10:30:00",
+    "timestamp": "2025-10-29T10:30:00Z",
     "status": 402,
     "error": "Payment Required",
+    "code": "INSUFFICIENT_POINT",
     "message": "포인트가 부족합니다. 필요: 25000, 보유: 20000",
     "path": "/api/v1/users/1/orders/12345/payment"
   }
@@ -572,7 +576,7 @@ Idempotency-Key: pay-<uuid>   // 필수, 이중 결제 방지
 - `409 Conflict` -  ORDER_EXPIRED | OUT_OF_STOCK | COUPON_INVALID | COUPON_EXPIRED | COUPON_ALREADY_USED
   ```json
   {
-    "timestamp": "2025-10-29T10:30:00",
+    "timestamp": "2025-10-29T10:30:00Z",
     "status": 409,
     "error": "Conflict",
     "message": "주문이 만료되었습니다",
@@ -621,7 +625,7 @@ Idempotency-Key: refund-<uuid>   // 필수
 - `409 Conflict` - 환불 불가능한 상태
   ```json
   {
-    "timestamp": "2025-10-29T11:00:00",
+    "timestamp": "2025-10-29T11:00:00Z",
     "status": 409,
     "error": "Conflict",
     "message": "환불 불가능한 주문 상태입니다",
@@ -664,7 +668,7 @@ Idempotency-Key: refund-<uuid>   // 필수
 - `409 Conflict` - 발급 불가
   ```json
   {
-    "timestamp": "2025-10-29T10:30:00",
+    "timestamp": "2025-10-29T10:30:00Z",
     "status": 409,
     "error": "Conflict",
     "message": "쿠폰이 모두 소진되었습니다",
@@ -720,17 +724,18 @@ Idempotency-Key: refund-<uuid>   // 필수
 
 ### 비즈니스 에러 코드 (409 Conflict)
 
-| 코드 | 설명 | HTTP Status |
-|------|------|-------------|
-| `ORDER_EXPIRED` | 주문이 만료됨 | 409 |
-| `OUT_OF_STOCK` | 재고 부족 | 409 |
-| `COUPON_INVALID` | 쿠폰 사용 불가 | 409 |
-| `COUPON_EXPIRED` | 쿠폰 만료 | 409 |
-| `COUPON_ALREADY_USED` | 쿠폰 이미 사용됨 | 409 |
-| `SOLD_OUT` | 쿠폰 발급 수량 소진 | 409 |
-| `ALREADY_ISSUED` | 이미 발급받은 쿠폰 | 409 |
-| `ISSUE_PERIOD_EXPIRED` | 쿠폰 발급 기간 만료 | 409 |
-| `INVALID_ORDER_STATUS` | 잘못된 주문 상태 | 409 |
+| 코드 | 설명          | HTTP Status |
+|------|-------------|-------------|
+| `ORDER_EXPIRED` | 주문이 만료됨     | 409         |
+| `OUT_OF_STOCK` | 재고 부족       | 409         |
+| `COUPON_INVALID` | 쿠폰 사용 불가    | 409         |
+| `COUPON_EXPIRED` | 쿠폰 만료       | 409         |
+| `COUPON_ALREADY_USED` | 쿠폰 이미 사용됨   | 409         |
+| `SOLD_OUT` | 쿠폰 발급 수량 소진 | 409         |
+| `ALREADY_ISSUED` | 이미 발급받은 쿠폰  | 409         |
+| `ISSUE_PERIOD_EXPIRED` | 쿠폰 발급 기간 만료 | 409         |
+| `INVALID_ORDER_STATUS` | 잘못된 주문 상태   | 409         |
+
 
 ### 결제 에러 코드
 
