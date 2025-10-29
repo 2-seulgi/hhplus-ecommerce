@@ -15,33 +15,46 @@ sequenceDiagram
     participant OB as OutboxRepository
     participant DB as Database
 
-    User->>PC: POST /orders/{orderId}/payment<br/>{couponId?}
+    User->>PC: POST /users/{userId}/orders/{orderId}/payment {couponCode?}
     activate PC
+    Note over PC: Idempotency-Key 헤더 조회<br/>(기존 성공 응답 있으면 즉시 반환)
 
-    PC->>PS: processPayment(orderId, couponId?)
+    PC->>PS: processPayment(userId, orderId, couponCode?)
     activate PS
     Note over PS: === 트랜잭션 시작 ===
 
-    Note over PS: 1. 주문 조회 및 검증
-    PS->>OR: findById(orderId)
+    Note over PS: 1) 주문 조회/검증<br/>(주문 소유자, 상태==PENDING, 만료 여부)
+    PS->>OR: findByIdWithItems(orderId)
     activate OR
-    OR->>DB: 주문 조회
-    DB-->>OR: Order
+    OR->>DB: 주문 + 항목 조회
+    DB-->>OR: Order(+items, snapshotAmount)
+    OR-->>PS: Order
     deactivate OR
 
+    alt 사용자 불일치
+        Note over PS: === 트랜잭션 롤백 ===
+        PS-->>PC: 404 ORDER_NOT_FOUND
+        PC-->>User: 주문을 찾을 수 없습니다
+    end
+    alt 상태 != PENDING
+        Note over PS: === 트랜잭션 롤백 ===
+        PS-->>PC: 409 INVALID_ORDER_STATUS
+        PC-->>User: 결제 가능한 주문이 아닙니다
+    end
     alt 주문 만료
         Note over PS: now > expiresAt
-        Note over PS: === 트랜잭션 종료 ===
+        Note over PS: === 트랜잭션 롤백 ===
         PS-->>PC: 409 ORDER_EXPIRED
         PC-->>User: 주문이 만료되었습니다
     end
 
-    alt 쿠폰 사용 시
-        Note over PS: 2. 쿠폰 검증
-        PS->>UCR: findByIdAndUserId(couponId, userId)
+    Note over PS: 2) 쿠폰 검증 (선택)
+    alt 쿠폰 코드가 제공된 경우
+        PS->>UCR: findByCodeAndUserId(couponCode, userId)
         activate UCR
-        UCR->>DB: 쿠폰 조회
+        UCR->>DB: 사용자 쿠폰 조회
         DB-->>UCR: UserCoupon
+        UCR-->>PS: UserCoupon
         deactivate UCR
 
         alt 쿠폰 검증 실패
@@ -50,76 +63,80 @@ sequenceDiagram
             PS-->>PC: 409 COUPON_INVALID
             PC-->>User: 사용 불가능한 쿠폰입니다
         end
+        Note over PS: 할인 금액 계산<br/>discount = min(couponValue, snapshotAmount)
     end
 
-    Note over PS: 3. 재고 차감 (낙관적 락)
-    PS->>PR: decreaseStock(productId, quantity, version)
-    activate PR
-    Note over PR: 낙관적 락으로<br/>재고 차감 시도
-    PR->>DB: 재고 차감
-    DB-->>PR: 성공 또는 실패
-    deactivate PR
+    Note over PS: 3) 재고 차감 (항목 루프, 낙관적 락)
+    loop 각 orderItem
+        PS->>PR: decreaseStock(productId, quantity, version)
+        activate PR
+        PR->>DB: UPDATE product<br/>SET stock=stock-qty, version=version+1<br/>WHERE id=? AND version=? AND stock>=qty
+        DB-->>PR: rowCount (1=성공, 0=실패)
+        PR-->>PS: boolean success
+        deactivate PR
 
-    alt 재고 차감 실패
-        Note over PS: version 불일치 또는<br/>재고 부족
-        Note over PS: === 트랜잭션 롤백 ===
-        PS-->>PC: 409 OUT_OF_STOCK
-        PC-->>User: 재고가 부족합니다
+        alt 재고 차감 실패
+            Note over PS: version 불일치 OR 재고 부족
+            Note over PS: === 트랜잭션 롤백 ===
+            PS-->>PC: 409 OUT_OF_STOCK
+            PC-->>User: 재고가 부족합니다
+        end
     end
 
-    Note over PS: 4. 할인 금액 계산
-    Note over PS: finalAmount = orderAmount - couponDiscount
+    Note over PS: 4) 최종 금액 계산<br/>finalAmount = snapshotAmount - discount
 
-    Note over PS: 5. 포인트 확인 및 차감
-    PS->>PTR: getBalance(userId)
+    Note over PS: 5) 포인트 차감 (원자적 1회, 낙관적 락)
+    PS->>PTR: decreaseBalance(userId, finalAmount, version)
     activate PTR
-    PTR->>DB: 잔액 조회
-    DB-->>PTR: currentBalance
-    deactivate PTR
+    Note over PTR: 5-1) 잔액 검증 + 차감
+    PTR->>DB: UPDATE user<br/>SET balance=balance-amount, version=version+1<br/>WHERE id=? AND version=? AND balance>=amount
+    DB-->>PTR: rowCount + newBalance
 
-    alt 포인트 부족
-        Note over PS: balance < finalAmount
+    alt 업데이트 실패 (rowCount=0)
+        Note over PTR: version 불일치 OR 잔액 부족
+        PTR-->>PS: failure
         Note over PS: === 트랜잭션 롤백 ===
         PS-->>PC: 402 INSUFFICIENT_POINT
         PC-->>User: 포인트가 부족합니다
     end
 
-    PS->>PTR: usePoint(userId, finalAmount)
-    activate PTR
-    Note over PTR: 포인트 차감<br/>(type: USE)
-    PTR->>DB: 포인트 사용 기록
+    Note over PTR: 5-2) 포인트 히스토리 기록
+    PTR->>DB: INSERT INTO point<br/>(user_id, point_type, amount, balance_after)<br/>VALUES (userId, 'USE', finalAmount, newBalance)
+    PTR-->>PS: remainingBalance
     deactivate PTR
 
     alt 쿠폰 사용 처리
-        Note over PS: 6. 쿠폰 사용 처리
-        PS->>UCR: markAsUsed(couponId)
+        Note over PS: 6) 쿠폰 사용 처리
+        PS->>UCR: markAsUsed(userCouponId)
         activate UCR
-        UCR->>DB: 쿠폰 상태 변경
+        UCR->>DB: UPDATE user_coupon SET used=true
         deactivate UCR
 
         PS->>ODR: save(orderDiscount)
         activate ODR
-        ODR->>DB: 할인 내역 저장
+        ODR->>DB: INSERT INTO order_discount
         deactivate ODR
     end
 
-    Note over PS: 7. 주문 상태 변경
+    Note over PS: 7) 주문 상태 변경
     PS->>OR: updateStatus(orderId, CONFIRMED)
     activate OR
-    OR->>DB: 주문 확정
+    OR->>DB: UPDATE order SET status='CONFIRMED'
     deactivate OR
 
-    Note over PS: 8. Outbox 이벤트 기록
+    Note over PS: 8) Outbox 이벤트 기록
     PS->>OB: save(outbox)
     activate OB
     Note over OB: 데이터 플랫폼 전송용<br/>이벤트 기록
-    OB->>DB: Outbox 저장
+    OB->>DB: INSERT INTO outbox
     deactivate OB
 
     Note over PS: === 트랜잭션 커밋 ===
 
-    PS-->>PC: PaymentResponse
+    PS-->>PC: PaymentResponse(orderId, remainingBalance)
     deactivate PS
+
+    Note over PC: Idempotency-Key에 최종 응답 저장<br/>(Redis, TTL=1h)
     PC-->>User: 200 OK (결제 완료)
     deactivate PC
 ```
@@ -135,7 +152,7 @@ sequenceDiagram
     participant UCR as UserCouponRepository
     participant DB as Database
 
-    User->>CC: POST /coupons/{couponId}/issue
+    User->>CC: POST /users/{userId}/coupons/{couponId}/issue
     activate CC
 
     CC->>CS: issueCoupon(userId, couponId)
