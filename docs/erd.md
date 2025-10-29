@@ -80,6 +80,7 @@ erDiagram
 
     COUPON {
         bigint coupon_id PK "쿠폰 ID"
+        string code UK "쿠폰 코드(예: WELCOME10)"
         string name "쿠폰명"
         string discount_type "할인 타입: FIXED/PERCENTAGE"
         int discount_value "할인 값(금액 또는 %)"
@@ -301,6 +302,7 @@ CONFIRMED → REFUNDED (환불 요청)
 | 컬럼명 | 타입 | 제약조건 | 설명 |
 |--------|------|----------|------|
 | coupon_id | BIGINT | PK, AUTO_INCREMENT | 쿠폰 ID |
+| code | VARCHAR(50) | NOT NULL, UNIQUE | 쿠폰 코드 (예: WELCOME10, SUMMER2025) |
 | name | VARCHAR(100) | NOT NULL | 쿠폰명 |
 | discount_type | VARCHAR(20) | NOT NULL | 할인 타입 (FIXED/PERCENTAGE) |
 | discount_value | INT | NOT NULL, CHECK > 0 | 할인 값 (금액 또는 퍼센트) |
@@ -316,6 +318,7 @@ CONFIRMED → REFUNDED (환불 요청)
 
 **인덱스:**
 - PRIMARY KEY: `coupon_id`
+- UNIQUE KEY: `code`
 - INDEX: `(issue_start_at, issue_end_at)` (발급 가능 쿠폰 조회)
 
 **체크 제약:**
@@ -326,6 +329,7 @@ CONFIRMED → REFUNDED (환불 요청)
 **비즈니스 규칙:**
 - 발급 시 낙관적 락 사용 (`version` 컬럼)
 - 발급 수량 소진 시 더 이상 발급 불가
+- 쿠폰 코드는 대소문자 구분하며 중복 불가
 
 ---
 
