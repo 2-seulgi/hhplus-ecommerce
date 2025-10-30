@@ -1,0 +1,21 @@
+{
+  "name": "ecommerce-mock-server",
+  "version": "1.0.0",
+  "description": "Mock API server for e-commerce MVP",
+  "main": "server.js",
+  "scripts": {
+    "start": "json-server --watch db.json --port 8080 --routes routes.json --middlewares middleware.js",
+    "start:simple": "json-server --watch db.json --port 8080"
+  },
+  "keywords": [
+    "mock",
+    "api",
+    "json-server",
+    "ecommerce"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "json-server": "^0.17.4"
+  }
+}

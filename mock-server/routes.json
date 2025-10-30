@@ -1,0 +1,17 @@
+{
+  "/api/v1/users/:userId/points/balance": "/users/:userId?_embed=points",
+  "/api/v1/users/:userId/points/charge": "/points",
+  "/api/v1/users/:userId/points/history": "/points?userId=:userId&_sort=createdAt&_order=desc",
+  "/api/v1/products": "/products",
+  "/api/v1/products/:id": "/products/:id",
+  "/api/v1/products/:id/stock": "/products/:id",
+  "/api/v1/products/top": "/products?_sort=stock&_order=desc&_limit=5",
+  "/api/v1/users/:userId/cart/items": "/cartItems?userId=:userId&_embed=products",
+  "/api/v1/users/:userId/cart/items/:cartItemId": "/cartItems/:cartItemId",
+  "/api/v1/users/:userId/orders": "/orders?userId=:userId&_embed=orderItems",
+  "/api/v1/users/:userId/orders/:orderId": "/orders/:orderId?_embed=orderItems",
+  "/api/v1/users/:userId/orders/:orderId/payment": "/orders/:orderId",
+  "/api/v1/users/:userId/orders/:orderId/refund": "/orders/:orderId",
+  "/api/v1/users/:userId/coupons/:couponId/issue": "/userCoupons",
+  "/api/v1/users/:userId/coupons": "/userCoupons?userId=:userId&_embed=coupons"
+}
