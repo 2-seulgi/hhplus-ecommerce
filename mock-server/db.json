@@ -1,0 +1,241 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "김철수",
+      "email": "kim@example.com",
+      "balance": 50000,
+      "version": 0,
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "이영희",
+      "email": "lee@example.com",
+      "balance": 100000,
+      "version": 0,
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "무선 마우스",
+      "description": "편안한 그립감의 무선 마우스",
+      "price": 29900,
+      "stock": 100,
+      "version": 0,
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "기계식 키보드",
+      "description": "청축 기계식 키보드",
+      "price": 89000,
+      "stock": 50,
+      "version": 0,
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 3,
+      "name": "USB 허브",
+      "description": "7포트 USB 3.0 허브",
+      "price": 15000,
+      "stock": 0,
+      "version": 0,
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 4,
+      "name": "모니터 암",
+      "description": "듀얼 모니터 거치대",
+      "price": 45000,
+      "stock": 30,
+      "version": 0,
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 5,
+      "name": "웹캠",
+      "description": "Full HD 웹캠",
+      "price": 65000,
+      "stock": 80,
+      "version": 0,
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    }
+  ],
+  "cartItems": [
+    {
+      "id": 1,
+      "userId": 1,
+      "productId": 1,
+      "quantity": 2,
+      "createdAt": "2025-10-29T09:00:00Z",
+      "updatedAt": "2025-10-29T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "productId": 2,
+      "quantity": 1,
+      "createdAt": "2025-10-29T09:00:00Z",
+      "updatedAt": "2025-10-29T09:00:00Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "userId": 1,
+      "status": "CONFIRMED",
+      "totalAmount": 89000,
+      "expiresAt": "2025-10-29T10:30:00Z",
+      "createdAt": "2025-10-29T10:00:00Z",
+      "updatedAt": "2025-10-29T10:05:00Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "status": "PENDING",
+      "totalAmount": 148800,
+      "expiresAt": "2025-10-29T11:30:00Z",
+      "createdAt": "2025-10-29T11:00:00Z",
+      "updatedAt": "2025-10-29T11:00:00Z"
+    }
+  ],
+  "orderItems": [
+    {
+      "id": 1,
+      "orderId": 1,
+      "productId": 2,
+      "productName": "기계식 키보드",
+      "unitPrice": 89000,
+      "quantity": 1,
+      "createdAt": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "orderId": 2,
+      "productId": 1,
+      "productName": "무선 마우스",
+      "unitPrice": 29900,
+      "quantity": 2,
+      "createdAt": "2025-10-29T11:00:00Z"
+    },
+    {
+      "id": 3,
+      "orderId": 2,
+      "productId": 2,
+      "productName": "기계식 키보드",
+      "unitPrice": 89000,
+      "quantity": 1,
+      "createdAt": "2025-10-29T11:00:00Z"
+    }
+  ],
+  "points": [
+    {
+      "id": 1,
+      "userId": 1,
+      "pointType": "CHARGE",
+      "amount": 100000,
+      "balanceAfter": 100000,
+      "createdAt": "2025-10-29T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "pointType": "USE",
+      "amount": 50000,
+      "balanceAfter": 50000,
+      "createdAt": "2025-10-29T10:05:00Z"
+    },
+    {
+      "id": 3,
+      "userId": 2,
+      "pointType": "CHARGE",
+      "amount": 100000,
+      "balanceAfter": 100000,
+      "createdAt": "2025-10-29T08:00:00Z"
+    }
+  ],
+  "coupons": [
+    {
+      "id": 1,
+      "code": "WELCOME10",
+      "name": "신규가입 10% 할인",
+      "discountType": "PERCENTAGE",
+      "discountValue": 10,
+      "totalQuantity": 100,
+      "issuedQuantity": 45,
+      "version": 0,
+      "issueStartAt": "2025-10-01T00:00:00Z",
+      "issueEndAt": "2025-12-31T23:59:59Z",
+      "useStartAt": "2025-10-01T00:00:00Z",
+      "useEndAt": "2025-12-31T23:59:59Z",
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "code": "SUMMER5000",
+      "name": "여름맞이 5000원 할인",
+      "discountType": "FIXED",
+      "discountValue": 5000,
+      "totalQuantity": 50,
+      "issuedQuantity": 50,
+      "version": 0,
+      "issueStartAt": "2025-10-01T00:00:00Z",
+      "issueEndAt": "2025-11-30T23:59:59Z",
+      "useStartAt": "2025-10-01T00:00:00Z",
+      "useEndAt": "2025-11-30T23:59:59Z",
+      "createdAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-29T10:00:00Z"
+    }
+  ],
+  "userCoupons": [
+    {
+      "id": 1,
+      "userId": 1,
+      "couponId": 1,
+      "used": false,
+      "usedAt": null,
+      "issuedAt": "2025-10-29T08:00:00Z"
+    },
+    {
+      "id": 2,
+      "userId": 2,
+      "couponId": 1,
+      "used": false,
+      "usedAt": null,
+      "issuedAt": "2025-10-29T08:00:00Z"
+    }
+  ],
+  "orderDiscounts": [
+    {
+      "id": 1,
+      "orderId": 1,
+      "userCouponId": null,
+      "discountType": "PROMOTION",
+      "discountValue": 10,
+      "discountAmount": 8900,
+      "createdAt": "2025-10-29T10:05:00Z"
+    }
+  ],
+  "outbox": [
+    {
+      "id": 1,
+      "orderId": 1,
+      "eventType": "ORDER_CONFIRMED",
+      "payload": "{\"orderId\":1,\"userId\":1,\"totalAmount\":89000}",
+      "status": "PENDING",
+      "createdAt": "2025-10-29T10:05:00Z",
+      "sentAt": null
+    }
+  ]
+}
