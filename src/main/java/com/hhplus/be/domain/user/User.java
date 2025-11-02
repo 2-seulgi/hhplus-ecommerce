@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -32,24 +32,22 @@ public class User {
     private int version;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
+    // 사용자는 이미 등록되어 있다고 가정 (테스트/개발용 생성자)
     private User(String name, String email, int balance) {
-        validateName(name);
-        validateEmail(email);
-        validateBalance(balance);
-
         this.name = name;
         this.email = email;
         this.balance = balance;
         this.version = 0;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
+    // 테스트/초기 데이터 생성용
     public static User create(String name, String email, int initialBalance) {
         return new User(name, email, initialBalance);
     }
@@ -59,7 +57,7 @@ public class User {
             throw new InvalidInputException("충전 금액은 양수여야 합니다");
         }
         this.balance += amount;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 
     public void use(int amount) {
@@ -70,7 +68,7 @@ public class User {
             throw new InsufficientBalanceException("잔액이 부족합니다");
         }
         this.balance -= amount;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 
     public void refund(int amount) {
@@ -78,24 +76,7 @@ public class User {
             throw new InvalidInputException("환불 금액은 양수여야 합니다");
         }
         this.balance += amount;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 
-    private void validateName(String name) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new InvalidInputException("이름은 필수입니다");
-        }
-    }
-
-    private void validateEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
-            throw new InvalidInputException("이메일은 필수입니다");
-        }
-    }
-
-    private void validateBalance(int balance) {
-        if (balance < 0) {
-            throw new InvalidInputException("잔액은 0 이상이어야 합니다");
-        }
-    }
 }
