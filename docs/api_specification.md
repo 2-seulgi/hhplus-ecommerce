@@ -115,10 +115,15 @@ Idempotency-Key: charge-<uuid>
 ```json
 {
   "content": [
-    { "pointId": 1, "pointType": "CHARGE", "amount": 10000, "balance": 60000, "createdAt": "2025-10-29T10:30:00Z" },
-    { "pointId": 2, "pointType": "USE",    "amount":  5000, "balance": 55000, "createdAt": "2025-10-29T09:00:00Z" }
+    { "productId": 1, "name": "상품명", "description": "상품 설명", "price": 10000 }
   ],
-  "totalElements": 50, "totalPages": 3, "size": 20, "number": 0, "hasNext": true, "hasPrevious": false
+  "totalElements": 100,
+  "totalPages": 5,
+  "size": 20,
+  "number": 0,
+  "first": true,
+  "last": false,
+  "empty": false
 }
 
 ```
