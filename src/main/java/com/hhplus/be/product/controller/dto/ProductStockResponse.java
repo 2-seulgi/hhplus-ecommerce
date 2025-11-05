@@ -1,26 +1,25 @@
 package com.hhplus.be.product.controller.dto;
 
+import com.hhplus.be.product.domain.StockStatus;
 import com.hhplus.be.product.service.dto.ProductStockResult;
-import lombok.Getter;
 
 /**
  * 상품 재고 조회 Response
  * API: GET /products/{productId}/stock
+ *
+ * API 명세 응답 필드:
+ * - productId, stock, stockStatus
  */
-@Getter
-public class ProductStockResponse {
-    private final Long productId;
-    private final int stock;
-
-    private ProductStockResponse(Long productId, int stock) {
-        this.productId = productId;
-        this.stock = stock;
-    }
-
+public record ProductStockResponse(
+        Long productId,
+        int stock,
+        StockStatus stockStatus
+) {
     public static ProductStockResponse from(ProductStockResult result) {
         return new ProductStockResponse(
                 result.getProductId(),
-                result.getStock()
+                result.getStock(),
+                result.getStockStatus()
         );
     }
 }

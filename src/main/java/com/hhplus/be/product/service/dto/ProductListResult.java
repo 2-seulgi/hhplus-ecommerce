@@ -3,7 +3,6 @@ package com.hhplus.be.product.service.dto;
 import com.hhplus.be.product.domain.Product;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -24,25 +23,22 @@ public class ProductListResult {
     public static class ProductItem {
         private final Long productId;
         private final String name;
+        private final String description;
         private final int price;
-        private final int stock;
-        private final LocalDateTime createdAt;
 
-        private ProductItem(Long productId, String name, int price, int stock, LocalDateTime createdAt) {
+        private ProductItem(Long productId, String name, String description, int price) {
             this.productId = productId;
             this.name = name;
+            this.description = description;
             this.price = price;
-            this.stock = stock;
-            this.createdAt = createdAt;
         }
 
         public static ProductItem from(Product product) {
             return new ProductItem(
                     product.getProduct_id(),
                     product.getName(),
-                    product.getPrice(),
-                    product.getStock(),
-                    product.getCreatedAt()
+                    product.getDescription(),
+                    product.getPrice()
             );
         }
     }

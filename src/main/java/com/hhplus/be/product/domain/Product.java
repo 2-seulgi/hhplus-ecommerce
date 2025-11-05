@@ -7,7 +7,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table
@@ -34,10 +34,10 @@ public class Product {
     private int version;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     // 상품은 이미 등록되어 있다고 가정 (테스트/초기 데이터 생성용)
     private Product(String name, String description, int price, int stock) {
@@ -46,8 +46,8 @@ public class Product {
         this.price = price;
         this.stock = stock;
         this.version = 0;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
     public static Product create(String name, String description, int price, int stock) {
@@ -63,7 +63,7 @@ public class Product {
             throw new BusinessException("재고가 부족합니다", "OUT_OF_STOCK");
         }
         this.stock -= quantity;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 
     // 재고 복원 (주문 취소 시)
@@ -72,7 +72,21 @@ public class Product {
             throw new InvalidInputException("복원 수량은 양수여야 합니다");
         }
         this.stock += quantity;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * 재고 상태 계산
+     * API 명세: GET /products/{productId}/stock
+     */
+    public StockStatus getStockStatus() {
+        if (this.stock == 0) {
+            return StockStatus.OUT_OF_STOCK;
+        } else if (this.stock < 10) {
+            return StockStatus.LOW_STOCK;
+        } else {
+            return StockStatus.AVAILABLE;
+        }
     }
 
     /**
