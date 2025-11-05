@@ -45,4 +45,21 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
         return new ProductStockResult(product);
     }
+
+    /**
+     * 인기 상품 조회 (판매량 기준)
+     * API: GET /products/top?period=3d&limit=5
+     */
+    public TopProductResult getTopProducts(TopProductQuery query) {
+        List<com.hhplus.be.product.domain.Product> topProducts = productRepository.findTopProducts(query.limit());
+
+        List<TopProductResult.ProductItem> items = topProducts.stream()
+                .map(product -> {
+                    int salesCount = productRepository.getSalesCount(product.getProduct_id());
+                    return TopProductResult.ProductItem.from(product, salesCount);
+                })
+                .toList();
+
+        return new TopProductResult(items);
+    }
 }
