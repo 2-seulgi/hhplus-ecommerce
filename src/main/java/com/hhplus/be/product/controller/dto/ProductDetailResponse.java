@@ -2,39 +2,27 @@ package com.hhplus.be.product.controller.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.hhplus.be.product.service.dto.ProductDetailResult;
-import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 상품 상세 조회 Response
  * API: GET /products/{productId}
+ *
+ * API 명세 응답 필드:
+ * - productId, name, description, price, stock, createdAt
+ * - updatedAt은 포함하지 않음
  */
-@Getter
-public class ProductDetailResponse {
-    private final Long productId;
-    private final String name;
-    private final String description;
-    private final int price;
-    private final int stock;
+public record ProductDetailResponse(
+        Long productId,
+        String name,
+        String description,
+        int price,
+        int stock,
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private final LocalDateTime createdAt;
-
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private final LocalDateTime updatedAt;
-
-    private ProductDetailResponse(Long productId, String name, String description, int price, int stock,
-                                  LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this.productId = productId;
-        this.name = name;
-        this.description = description;
-        this.price = price;
-        this.stock = stock;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+        Instant createdAt
+) {
     public static ProductDetailResponse from(ProductDetailResult result) {
         return new ProductDetailResponse(
                 result.getProductId(),
@@ -42,8 +30,7 @@ public class ProductDetailResponse {
                 result.getDescription(),
                 result.getPrice(),
                 result.getStock(),
-                result.getCreatedAt(),
-                result.getUpdatedAt()
+                result.getCreatedAt()
         );
     }
 }

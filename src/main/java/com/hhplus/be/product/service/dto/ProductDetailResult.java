@@ -3,7 +3,7 @@ package com.hhplus.be.product.service.dto;
 import com.hhplus.be.product.domain.Product;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 상품 상세 조회 Result
@@ -16,8 +16,7 @@ public class ProductDetailResult {
     private final String description;
     private final int price;
     private final int stock;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    private final Instant createdAt;
 
     public ProductDetailResult(Product product) {
         this.productId = product.getProduct_id();
@@ -26,6 +25,5 @@ public class ProductDetailResult {
         this.price = product.getPrice();
         this.stock = product.getStock();
         this.createdAt = product.getCreatedAt();
-        this.updatedAt = product.getUpdatedAt();
     }
 }
