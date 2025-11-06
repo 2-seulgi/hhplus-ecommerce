@@ -28,9 +28,21 @@ public class Order {
     private int totalAmount;
 
     @Column(nullable = false)
-    private Instant expiresAt;
+    private int finalAmount; // 기본 0, 결제 시 업데이트
 
     @Column(nullable = false)
+    private Instant expiresAt;
+
+    @Column
+    private Instant paidAt;
+
+    @Column
+    private Instant canceledAt;
+
+    @Column
+    private Instant refundedAt;
+
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
     @Column(nullable = false)
@@ -40,9 +52,10 @@ public class Order {
         this.userId = userId;
         this.status = OrderStatus.PENDING;
         this.totalAmount = totalAmount;
+        this.finalAmount = 0;
         this.expiresAt = expiresAt;
         this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
+        this.updatedAt = this.createdAt;
     }
 
     public static Order create(Long userId, int totalAmount, Instant expiresAt) {
@@ -50,30 +63,34 @@ public class Order {
     }
 
     // 결제 완료( PENDING -> CONFIRMED )
-    public void confirm() {
+    public void confirm(int finalAmount, Instant paidAt) {
         if (this.status != OrderStatus.PENDING) {
             throw new BusinessException("잘못된 주문 상태입니다", "INVALID_ORDER_STATUS");
         }
         this.status = OrderStatus.CONFIRMED;
-        this.updatedAt = Instant.now();
+        this.finalAmount = finalAmount;
+        this.paidAt = paidAt;
+        this.updatedAt = paidAt;
     }
 
     // 주문 취소 ( PENDING -> CANCELLED )
-    public void cancel() {
+    public void cancel(Instant now) {
         if (this.status != OrderStatus.PENDING) {
             throw new BusinessException("취소할 수 없는 주문 상태입니다.", "INVALID_ORDER_STATUS");
         }
         this.status = OrderStatus.CANCELLED;
-        this.updatedAt = Instant.now();
+        this.canceledAt = now;
+        this.updatedAt = now;
     }
 
     // 주문 환불 ( CONFIRMED -> REFUNDED )
-    public void refund() {
+    public void refund(Instant now) {
         if (this.status != OrderStatus.CONFIRMED) {
             throw new BusinessException("환불할 수 없는 주문 상태입니다.", "INVALID_ORDER_STATUS");
         }
         this.status = OrderStatus.REFUNDED;
-        this.updatedAt = Instant.now();
+        this.refundedAt = now;
+        this.updatedAt = now;
     }
 
     // 주문 만료 여부 확인
@@ -81,10 +98,6 @@ public class Order {
         return now.isAfter(this.expiresAt) || now.equals(this.expiresAt);
     }
 
-    // 현재 시각 기준 만료 여부
-    public boolean isExpired() {
-        return isExpired(Instant.now());
-    }
 
     /**
      * ID 할당 (Repository 전용 메서드)
