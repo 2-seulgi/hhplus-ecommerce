@@ -86,4 +86,18 @@ public class Order {
         return isExpired(Instant.now());
     }
 
+    /**
+     * ID 할당 (Repository 전용 메서드)
+     * JPA 도입 시 제거 예정
+     *
+     * WARNING: 비즈니스 로직에서 호출 금지!
+     * Repository 구현체에서만 사용해야 합니다.
+     */
+    public void assignId(Long id) {
+        if (this.id != null) {
+            throw new IllegalStateException("ID는 한 번만 할당할 수 있습니다");
+        }
+        this.id = id;
+    }
+
 }
