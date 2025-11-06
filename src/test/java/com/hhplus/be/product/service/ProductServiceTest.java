@@ -1,13 +1,11 @@
 package com.hhplus.be.product.service;
 
 import com.hhplus.be.common.exception.ResourceNotFoundException;
+import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
 import com.hhplus.be.product.domain.Product;
 import com.hhplus.be.product.domain.StockStatus;
 import com.hhplus.be.product.infrastructure.ProductRepository;
-import com.hhplus.be.product.service.dto.ProductDetailQuery;
-import com.hhplus.be.product.service.dto.ProductListQuery;
-import com.hhplus.be.product.service.dto.ProductStockQuery;
-import com.hhplus.be.product.service.dto.TopProductQuery;
+import com.hhplus.be.product.service.dto.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +25,7 @@ class ProductServiceTest {
 
     @Mock
     private ProductRepository productRepository;
+    @Mock OrderItemRepository orderItemRepository;
 
     @InjectMocks
     private ProductService productService;
@@ -47,13 +46,13 @@ class ProductServiceTest {
         var result = productService.getProducts(query);
 
         // then
-        assertThat(result.getProducts()).hasSize(2);
-        assertThat(result.getProducts().get(0).getProductId()).isEqualTo(1L);
-        assertThat(result.getProducts().get(0).getName()).isEqualTo("무선 이어폰");
-        assertThat(result.getProducts().get(0).getDescription()).isEqualTo("고음질 블루투스");
-        assertThat(result.getProducts().get(0).getPrice()).isEqualTo(89000);
-        assertThat(result.getProducts().get(1).getProductId()).isEqualTo(2L);
-        assertThat(result.getProducts().get(1).getName()).isEqualTo("스마트워치");
+        assertThat(result.products()).hasSize(2);
+        assertThat(result.products().get(0).productId()).isEqualTo(1L);
+        assertThat(result.products().get(0).name()).isEqualTo("무선 이어폰");
+        assertThat(result.products().get(0).description()).isEqualTo("고음질 블루투스");
+        assertThat(result.products().get(0).price()).isEqualTo(89000);
+        assertThat(result.products().get(1).productId()).isEqualTo(2L);
+        assertThat(result.products().get(1).name()).isEqualTo("스마트워치");
     }
 
     @Test
@@ -67,7 +66,7 @@ class ProductServiceTest {
         var result = productService.getProducts(query);
 
         // then
-        assertThat(result.getProducts()).isEmpty();
+        assertThat(result.products()).isEmpty();
     }
 
     @Test
@@ -85,11 +84,11 @@ class ProductServiceTest {
         var result = productService.getProductDetail(query);
 
         // then
-        assertThat(result.getProductId()).isEqualTo(productId);
-        assertThat(result.getName()).isEqualTo("무선 이어폰");
-        assertThat(result.getDescription()).isEqualTo("고음질 블루투스");
-        assertThat(result.getPrice()).isEqualTo(89000);
-        assertThat(result.getStock()).isEqualTo(100);
+        assertThat(result.productId()).isEqualTo(productId);
+        assertThat(result.name()).isEqualTo("무선 이어폰");
+        assertThat(result.description()).isEqualTo("고음질 블루투스");
+        assertThat(result.price()).isEqualTo(89000);
+        assertThat(result.stock()).isEqualTo(100);
     }
 
     @Test
@@ -121,9 +120,9 @@ class ProductServiceTest {
         var result = productService.getProductStock(query);
 
         // then
-        assertThat(result.getProductId()).isEqualTo(productId);
-        assertThat(result.getStock()).isEqualTo(100);
-        assertThat(result.getStockStatus()).isEqualTo(StockStatus.AVAILABLE);
+        assertThat(result.productId()).isEqualTo(productId);
+        assertThat(result.stock()).isEqualTo(100);
+        assertThat(result.stockStatus()).isEqualTo(StockStatus.AVAILABLE);
     }
 
     @Test
@@ -155,9 +154,9 @@ class ProductServiceTest {
         var result = productService.getProductStock(query);
 
         // then
-        assertThat(result.getProductId()).isEqualTo(productId);
-        assertThat(result.getStock()).isEqualTo(0);
-        assertThat(result.getStockStatus()).isEqualTo(StockStatus.OUT_OF_STOCK);
+        assertThat(result.productId()).isEqualTo(productId);
+        assertThat(result.stock()).isEqualTo(0);
+        assertThat(result.stockStatus()).isEqualTo(StockStatus.OUT_OF_STOCK);
     }
 
     @Test
@@ -175,121 +174,52 @@ class ProductServiceTest {
         var result = productService.getProductStock(query);
 
         // then
-        assertThat(result.getProductId()).isEqualTo(productId);
-        assertThat(result.getStock()).isEqualTo(5);
-        assertThat(result.getStockStatus()).isEqualTo(StockStatus.LOW_STOCK);
+        assertThat(result.productId()).isEqualTo(productId);
+        assertThat(result.stock()).isEqualTo(5);
+        assertThat(result.stockStatus()).isEqualTo(StockStatus.LOW_STOCK);
     }
 
     @Test
-    @DisplayName("인기 상품 조회 - 성공")
-    void getTopProducts_Success() {
+    @DisplayName("3일간 판매량 상위 5개만, 판매량 내림차순으로 반환한다 (period=3d, limit=5)")
+    void getTopProducts_top5_desc_simple() {
         // given
-        var query = new TopProductQuery("3d", 3);
-        var product1 = Product.create("무선 이어폰", "고음질 블루투스", 89000, 100);
-        var product2 = Product.create("스마트워치", "건강 관리", 250000, 50);
-        var product3 = Product.create("블루투스 스피커", "방수 휴대용", 45000, 80);
-        product1.assignId(1L);
-        product2.assignId(2L);
-        product3.assignId(6L);
+        var salesMap = java.util.Map.of(
+                1L, 10, 2L, 20, 3L, 30, 4L, 40, 5L, 50,
+                6L, 60, 7L, 70, 8L, 80, 9L, 90, 10L, 100
+        );
+        given(orderItemRepository.countSalesByProductSince(any()))
+                .willReturn(salesMap);
 
-        given(productRepository.findTopProducts(3)).willReturn(List.of(product1, product2, product3));
-        given(productRepository.getSalesCount(1L)).willReturn(150);
-        given(productRepository.getSalesCount(2L)).willReturn(120);
-        given(productRepository.getSalesCount(6L)).willReturn(95);
+        // 상위 5개에 대해서만 Product 조회 스텁
+        given(productRepository.findById(10L)).willReturn(Optional.of(createProductWithId(10L, "P10", 10000)));
+        given(productRepository.findById(9L)).willReturn(Optional.of(createProductWithId(9L, "P9", 9000)));
+        given(productRepository.findById(8L)).willReturn(Optional.of(createProductWithId(8L, "P8", 8000)));
+        given(productRepository.findById(7L)).willReturn(Optional.of(createProductWithId(7L, "P7", 7000)));
+        given(productRepository.findById(6L)).willReturn(Optional.of(createProductWithId(6L, "P6", 6000)));
 
-        // when
-        var result = productService.getTopProducts(query);
-
-        // then
-        assertThat(result.getProducts()).hasSize(3);
-        assertThat(result.getProducts().get(0).getProductId()).isEqualTo(1L);
-        assertThat(result.getProducts().get(0).getName()).isEqualTo("무선 이어폰");
-        assertThat(result.getProducts().get(0).getSalesCount()).isEqualTo(150);
-        assertThat(result.getProducts().get(1).getSalesCount()).isEqualTo(120);
-        assertThat(result.getProducts().get(2).getSalesCount()).isEqualTo(95);
-    }
-
-    @Test
-    @DisplayName("인기 상품 조회 - 빈 목록")
-    void getTopProducts_EmptyList() {
-        // given
         var query = new TopProductQuery("3d", 5);
-        given(productRepository.findTopProducts(5)).willReturn(List.of());
 
         // when
         var result = productService.getTopProducts(query);
 
         // then
-        assertThat(result.getProducts()).isEmpty();
+        // 1) limit=5 적용
+        assertThat(result.products()).hasSize(5);
+
+        // 2) 판매량 내림차순 정렬 검증: 10L, 9L, 8L, 7L, 6L
+        assertThat(result.products())
+                .extracting(TopProductResult.ProductItem::productId)
+                .containsExactly(10L, 9L, 8L, 7L, 6L);
+
     }
 
-    @Test
-    @DisplayName("인기 상품 조회 - limit 파라미터가 레포로 정확히 전달된다")
-    void getTopProducts_PassesLimitToRepository() {
-        var query = new TopProductQuery("3d", 5);
-        given(productRepository.findTopProducts(anyInt())).willReturn(List.of());
-        var result = productService.getTopProducts(query);
 
-        then(productRepository).should().findTopProducts(5);
-        assertThat(result.getProducts()).isEmpty();
-    }
-
-    @Test
-    @DisplayName("인기 상품 조회 - 판매량 내림차순 정렬 검증")
-    void getTopProducts_VerifySalesCountDescending() {
-        // given
-        var query = new TopProductQuery("7d", 3);
-        var product1 = createProductWithId(1L, "고판매 상품", 10000);
-        var product2 = createProductWithId(2L, "중판매 상품", 30000);
-        var product3 = createProductWithId(3L, "저판매 상품", 50000);
-
-        // Repository는 이미 판매량 순으로 정렬해서 반환 (300 -> 200 -> 100)
-        given(productRepository.findTopProducts(3)).willReturn(List.of(product1, product2, product3));
-
-        given(productRepository.getSalesCount(1L)).willReturn(300);
-        given(productRepository.getSalesCount(2L)).willReturn(200);
-        given(productRepository.getSalesCount(3L)).willReturn(100);
-
-        // when
-        var result = productService.getTopProducts(query);
-
-        // then
-        assertThat(result.getProducts()).hasSize(3);
-        assertThat(result.getProducts().get(0).getSalesCount()).isEqualTo(300);
-        assertThat(result.getProducts().get(1).getSalesCount()).isEqualTo(200);
-        assertThat(result.getProducts().get(2).getSalesCount()).isEqualTo(100);
-
-        // 판매량 내림차순 정렬 확인
-        for (int i = 0; i < result.getProducts().size() - 1; i++) {
-            assertThat(result.getProducts().get(i).getSalesCount())
-                    .isGreaterThanOrEqualTo(result.getProducts().get(i + 1).getSalesCount());
-        }
-    }
-
-    @Test
-    @DisplayName("인기 상품 조회 - 판매량 0인 상품 포함")
-    void getTopProducts_WithZeroSalesCount() {
-        // given
-        var query = new TopProductQuery("3d", 2);
-        var product1 = createProductWithId(1L, "판매 있는 상품", 50000);
-        var product2 = createProductWithId(2L, "판매 없는 상품", 30000);
-
-        given(productRepository.findTopProducts(2)).willReturn(List.of(product1, product2));
-        given(productRepository.getSalesCount(1L)).willReturn(50);
-        given(productRepository.getSalesCount(2L)).willReturn(0);
-
-        // when
-        var result = productService.getTopProducts(query);
-
-        // then
-        assertThat(result.getProducts()).hasSize(2);
-        assertThat(result.getProducts().get(0).getSalesCount()).isEqualTo(50);
-        assertThat(result.getProducts().get(1).getSalesCount()).isEqualTo(0);
-    }
 
     private Product createProductWithId(Long id, String name, int price) {
         var product = Product.create(name, "설명", price, 100);
         product.assignId(id);
         return product;
     }
+
+
 }

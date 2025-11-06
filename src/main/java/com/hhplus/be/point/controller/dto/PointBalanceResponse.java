@@ -12,8 +12,8 @@ public record PointBalanceResponse(
 ) {
     public static PointBalanceResponse from(PointBalanceResult result) {
         return new PointBalanceResponse(
-                result.getUserId(),
-                result.getBalance()
+                result.userId(),
+                result.balance()
         );
     }
 }

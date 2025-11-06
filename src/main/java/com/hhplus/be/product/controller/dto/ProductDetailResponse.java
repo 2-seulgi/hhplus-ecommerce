@@ -25,12 +25,12 @@ public record ProductDetailResponse(
 ) {
     public static ProductDetailResponse from(ProductDetailResult result) {
         return new ProductDetailResponse(
-                result.getProductId(),
-                result.getName(),
-                result.getDescription(),
-                result.getPrice(),
-                result.getStock(),
-                result.getCreatedAt()
+                result.productId(),
+                result.name(),
+                result.description(),
+                result.price(),
+                result.stock(),
+                result.createdAt()
         );
     }
 }

@@ -21,12 +21,12 @@ public record PointChargeResponse(
 
     public static PointChargeResponse from(PointChargeResult result) {
         return new PointChargeResponse(
-                result.getPointId(),
-                result.getUserId(),
-                result.getPointType().name(),
-                result.getAmount(),
-                result.getBalanceAfter(),
-                result.getCreatedAt().format(FORMATTER)
+                result.pointId(),
+                result.userId(),
+                result.pointType().name(),
+                result.amount(),
+                result.balanceAfter(),
+                result.createdAt().format(FORMATTER)
         );
     }
 }

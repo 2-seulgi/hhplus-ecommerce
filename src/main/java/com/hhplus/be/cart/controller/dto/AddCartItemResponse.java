@@ -29,23 +29,23 @@ public record AddCartItemResponse(
     }
 
     public static AddCartItemResponse from(AddCartItemResult result) {
-        var item = result.getItem();
-        var summary = result.getSummary();
+        var item = result.item();
+        var summary = result.summary();
 
         return new AddCartItemResponse(
                 new CartItemInfo(
-                        item.getCartItemId(),
-                        item.getProductId(),
-                        item.getProductName(),
-                        item.getUnitPrice(),
-                        item.getQuantity(),
-                        item.getSubtotal(),
-                        item.getStock(),
-                        item.isStockOk()
+                        item.cartItemId(),
+                        item.productId(),
+                        item.productName(),
+                        item.unitPrice(),
+                        item.quantity(),
+                        item.subtotal(),
+                        item.stock(),
+                        item.stockOk()
                 ),
                 new CartSummary(
-                        summary.getTotalAmount(),
-                        summary.getItemCount()
+                        summary.totalAmount(),
+                        summary.itemCount()
                 )
         );
     }

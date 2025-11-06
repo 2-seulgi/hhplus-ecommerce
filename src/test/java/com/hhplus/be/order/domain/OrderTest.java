@@ -21,7 +21,7 @@ class OrderTest {
         // given
         Order order = Order.create(1L, 30000, Instant.now().plus(30, ChronoUnit.MINUTES ));
         // when
-        order.confirm();
+        order.confirm(30000, Instant.now() );
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
     }
@@ -32,7 +32,7 @@ class OrderTest {
         //given
         Order order = Order.create(1L, 30000, Instant.now().plus(30, ChronoUnit.MINUTES ));
         // when
-        order.cancel();
+        order.cancel(Instant.now());
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.CANCELLED);
     }
@@ -42,9 +42,9 @@ class OrderTest {
     void cannotCancelIfNotPending() {
         // given
         Order order = Order.create(1L, 30000, Instant.now().plus(30, ChronoUnit.MINUTES ));
-        order.confirm();
+        order.confirm(30000, Instant.now() );
         // when & then
-        assertThatThrownBy(order::cancel)
+        assertThatThrownBy(() -> order.cancel(Instant.now()))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("취소할 수 없는 주문 상태입니다.");
     }
@@ -54,10 +54,10 @@ class OrderTest {
     void refundOrder() {
         // given
         Order order = Order.create(1L, 30000, Instant.now().plus(30, ChronoUnit.MINUTES ));
-        order.confirm();
+        order.confirm(30000, Instant.now() );
 
         // when
-        order.refund();
+        order.refund(Instant.now());
 
         // then
         assertThat(order.getStatus()).isEqualTo(OrderStatus.REFUNDED);
@@ -70,7 +70,7 @@ class OrderTest {
         Order order = Order.create(1L, 30000, Instant.now().plus(30, ChronoUnit.MINUTES ));
 
         // when & then
-        assertThatThrownBy(() -> order.refund())
+        assertThatThrownBy(() -> order.refund(Instant.now()))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("환불할 수 없는 주문 상태입니다");
     }

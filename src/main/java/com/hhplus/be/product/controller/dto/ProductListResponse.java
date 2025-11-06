@@ -18,10 +18,10 @@ public record ProductListResponse(
 ) {
     public static ProductListResponse from(ProductListResult.ProductItem item) {
         return new ProductListResponse(
-                item.getProductId(),
-                item.getName(),
-                item.getDescription(),
-                item.getPrice()
+                item.productId(),
+                item.name(),
+                item.description(),
+                item.price()
         );
     }
 }

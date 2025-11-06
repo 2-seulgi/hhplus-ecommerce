@@ -58,12 +58,12 @@ public class CartService {
                 .toList();
 
         var addedItemInfo = itemInfos.stream()
-                .filter(info -> info.getCartItemId().equals(savedItem.getId()))
+                .filter(info -> info.cartItemId().equals(savedItem.getId()))
                 .findFirst()
                 .orElseThrow();
 
         var summary = new CartResult.CartSummary(
-                itemInfos.stream().mapToInt(CartResult.CartItemInfo::getSubtotal).sum(),
+                itemInfos.stream().mapToInt(CartResult.CartItemInfo::subtotal).sum(),
                 itemInfos.size()
         );
 

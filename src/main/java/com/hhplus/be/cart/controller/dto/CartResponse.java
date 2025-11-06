@@ -33,22 +33,22 @@ public record CartResponse(
     }
 
     public static CartResponse from(CartResult result) {
-        var items = result.getItems().stream()
+        var items = result.items().stream()
                 .map(item -> new CartItemInfo(
-                        item.getCartItemId(),
-                        item.getProductId(),
-                        item.getProductName(),
-                        item.getUnitPrice(),
-                        item.getQuantity(),
-                        item.getSubtotal(),
-                        item.getStock(),
-                        item.isStockOk()
+                        item.cartItemId(),
+                        item.productId(),
+                        item.productName(),
+                        item.unitPrice(),
+                        item.quantity(),
+                        item.subtotal(),
+                        item.stock(),
+                        item.stockOk()
                 ))
                 .toList();
 
         var summary = new CartSummary(
-                result.getSummary().getTotalAmount(),
-                result.getSummary().getItemCount()
+                result.summary().totalAmount(),
+                result.summary().itemCount()
         );
 
         return new CartResponse(items, summary);

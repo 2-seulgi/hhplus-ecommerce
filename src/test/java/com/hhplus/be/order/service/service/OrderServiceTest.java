@@ -8,12 +8,20 @@ import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.order.domain.Order;
 import com.hhplus.be.order.domain.OrderStatus;
 import com.hhplus.be.order.infrastructure.OrderRepository;
+import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
+import com.hhplus.be.point.domain.Point;
+import com.hhplus.be.point.domain.PointType;
+import com.hhplus.be.point.infrastructure.PointRepository;
+import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.domain.Product;
 import com.hhplus.be.product.infrastructure.ProductRepository;
 import com.hhplus.be.user.domain.User;
 import com.hhplus.be.user.infrastructure.UserRepository;
 import com.hhplus.be.order.service.OrderService;
+import com.hhplus.be.coupon.infrastructure.CouponRepository;
+import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
+import com.hhplus.be.orderdiscount.infrastructure.OrderDiscountRepository;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +31,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +49,11 @@ class OrderServiceTest {
     @Mock private CartRepository cartRepository;
     @Mock private OrderRepository orderRepository;
     @Mock private OrderItemRepository orderItemRepository;
+    @Mock private PointRepository pointRepository;
+    @Mock private CouponRepository couponRepository;
+    @Mock private UserCouponRepository userCouponRepository;
+    @Mock private OrderDiscountRepository orderDiscountRepository;
+    @Mock private Clock clock;
 
     @InjectMocks
     private OrderService orderService;
@@ -49,6 +63,9 @@ class OrderServiceTest {
     void createFromCart_success() {
         // given
         Long userId = 1L;
+        Instant fixedNow = Instant.parse("2025-01-01T10:00:00Z");
+        when(clock.instant()).thenReturn(fixedNow);
+
         when(userRepository.findById(userId))
                 .thenReturn(Optional.of(User.createWithId(userId, "홍길동", "hong@example.com", 10_000)));
 
@@ -75,10 +92,9 @@ class OrderServiceTest {
         assertThat(result.status()).isEqualTo(OrderStatus.PENDING);
         assertThat(result.totalAmount()).isEqualTo(6_000_000);
 
-        // expiresAt ~ now+30m 근처(±1분 허용)
-        Instant now = Instant.now();
-        assertThat(Duration.between(now.plus(Duration.ofMinutes(30)), result.expiresAt()).abs().toMinutes())
-                .isLessThanOrEqualTo(1);
+        // expiresAt = fixedNow + 30분
+        Instant expectedExpiry = fixedNow.plus(Duration.ofMinutes(30));
+        assertThat(result.expiresAt()).isEqualTo(expectedExpiry);
 
         verify(orderItemRepository).saveAll(anyList());
         verify(orderRepository).save(any(Order.class));
@@ -134,4 +150,5 @@ class OrderServiceTest {
         verify(orderRepository, never()).save(any());
         verify(orderItemRepository, never()).saveAll(anyList());
     }
+
 }

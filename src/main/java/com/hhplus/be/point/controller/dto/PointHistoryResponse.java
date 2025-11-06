@@ -19,11 +19,11 @@ public record PointHistoryResponse(
 
     public static PointHistoryResponse from(PointHistoryResult result) {
         return new PointHistoryResponse(
-                result.getPointId(),
-                result.getPointType().name(),
-                result.getAmount(),
-                result.getBalanceAfter(),
-                result.getCreatedAt().format(FORMATTER)
+                result.pointId(),
+                result.pointType().name(),
+                result.amount(),
+                result.balanceAfter(),
+                result.createdAt().format(FORMATTER)
         );
     }
 }

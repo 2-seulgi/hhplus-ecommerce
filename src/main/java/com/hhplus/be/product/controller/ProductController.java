@@ -40,13 +40,13 @@ public class ProductController {
 
         // 페이징 처리
         int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), result.getProducts().size());
+        int end = Math.min((start + pageable.getPageSize()), result.products().size());
 
-        var pageContent = result.getProducts().subList(start, end).stream()
+        var pageContent = result.products().subList(start, end).stream()
                 .map(ProductListResponse::from)
                 .toList();
 
-        var page = new PageImpl<>(pageContent, pageable, result.getProducts().size());
+        var page = new PageImpl<>(pageContent, pageable, result.products().size());
 
         return ResponseEntity.ok(page);
     }

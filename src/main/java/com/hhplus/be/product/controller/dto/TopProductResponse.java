@@ -15,7 +15,7 @@ public record TopProductResponse(
         List<ProductItem> products
 ) {
     public static TopProductResponse from(TopProductResult result) {
-        List<ProductItem> items = result.getProducts().stream()
+        List<ProductItem> items = result.products().stream()
                 .map(ProductItem::from)
                 .toList();
         return new TopProductResponse(items);
@@ -29,10 +29,10 @@ public record TopProductResponse(
     ) {
         public static ProductItem from(TopProductResult.ProductItem item) {
             return new ProductItem(
-                    item.getProductId(),
-                    item.getName(),
-                    item.getPrice(),
-                    item.getSalesCount()
+                    item.productId(),
+                    item.name(),
+                    item.price(),
+                    item.salesCount()
             );
         }
     }
