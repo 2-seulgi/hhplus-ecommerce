@@ -17,9 +17,9 @@ public record ProductStockResponse(
 ) {
     public static ProductStockResponse from(ProductStockResult result) {
         return new ProductStockResponse(
-                result.getProductId(),
-                result.getStock(),
-                result.getStockStatus()
+                result.productId(),
+                result.stock(),
+                result.stockStatus()
         );
     }
 }

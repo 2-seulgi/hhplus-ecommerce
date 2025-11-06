@@ -60,12 +60,12 @@ class CartServiceTest {
         var result = cartService.addCartItem(command);
 
         // then
-        assertThat(result.getItem().getCartItemId()).isEqualTo(1L);
-        assertThat(result.getItem().getProductId()).isEqualTo(productId);
-        assertThat(result.getItem().getQuantity()).isEqualTo(quantity);
-        assertThat(result.getItem().getSubtotal()).isEqualTo(89000 * 2);
-        assertThat(result.getSummary().getTotalAmount()).isEqualTo(89000 * 2);
-        assertThat(result.getSummary().getItemCount()).isEqualTo(1);
+        assertThat(result.item().cartItemId()).isEqualTo(1L);
+        assertThat(result.item().productId()).isEqualTo(productId);
+        assertThat(result.item().quantity()).isEqualTo(quantity);
+        assertThat(result.item().subtotal()).isEqualTo(89000 * 2);
+        assertThat(result.summary().totalAmount()).isEqualTo(89000 * 2);
+        assertThat(result.summary().itemCount()).isEqualTo(1);
     }
 
     @Test
@@ -92,8 +92,8 @@ class CartServiceTest {
         var result = cartService.addCartItem(command);
 
         // then
-        assertThat(result.getItem().getQuantity()).isEqualTo(5); // 3 + 2
-        assertThat(result.getItem().getSubtotal()).isEqualTo(89000 * 5);
+        assertThat(result.item().quantity()).isEqualTo(5); // 3 + 2
+        assertThat(result.item().subtotal()).isEqualTo(89000 * 5);
         verify(cartRepository).save(existingItem);
     }
 
@@ -135,12 +135,12 @@ class CartServiceTest {
         var result = cartService.getCart(query);
 
         // then
-        assertThat(result.getItems()).hasSize(2);
-        assertThat(result.getItems().get(0).getProductName()).isEqualTo("무선 이어폰");
-        assertThat(result.getItems().get(0).getQuantity()).isEqualTo(2);
-        assertThat(result.getItems().get(1).getProductName()).isEqualTo("스마트워치");
-        assertThat(result.getSummary().getTotalAmount()).isEqualTo(89000 * 2 + 250000);
-        assertThat(result.getSummary().getItemCount()).isEqualTo(2);
+        assertThat(result.items()).hasSize(2);
+        assertThat(result.items().get(0).productName()).isEqualTo("무선 이어폰");
+        assertThat(result.items().get(0).quantity()).isEqualTo(2);
+        assertThat(result.items().get(1).productName()).isEqualTo("스마트워치");
+        assertThat(result.summary().totalAmount()).isEqualTo(89000 * 2 + 250000);
+        assertThat(result.summary().itemCount()).isEqualTo(2);
     }
 
     @Test
@@ -155,9 +155,9 @@ class CartServiceTest {
         var result = cartService.getCart(query);
 
         // then
-        assertThat(result.getItems()).isEmpty();
-        assertThat(result.getSummary().getTotalAmount()).isZero();
-        assertThat(result.getSummary().getItemCount()).isZero();
+        assertThat(result.items()).isEmpty();
+        assertThat(result.summary().totalAmount()).isZero();
+        assertThat(result.summary().itemCount()).isZero();
     }
 
     @Test
@@ -184,8 +184,8 @@ class CartServiceTest {
         var result = cartService.updateCartItemQuantity(command);
 
         // then
-        assertThat(result.getItems()).hasSize(1);
-        assertThat(result.getItems().get(0).getQuantity()).isEqualTo(newQuantity);
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().get(0).quantity()).isEqualTo(newQuantity);
         verify(cartRepository).save(cartItem);
     }
 
@@ -207,7 +207,7 @@ class CartServiceTest {
         var result = cartService.updateCartItemQuantity(command);
 
         // then
-        assertThat(result.getItems()).isEmpty();
+        assertThat(result.items()).isEmpty();
         verify(cartRepository).delete(cartItem);
         verify(cartRepository, never()).save(any());
     }
@@ -250,7 +250,7 @@ class CartServiceTest {
         var result = cartService.deleteCartItem(command);
 
         // then
-        assertThat(result.getItems()).isEmpty();
+        assertThat(result.items()).isEmpty();
         verify(cartRepository).delete(cartItem);
     }
 
@@ -285,8 +285,8 @@ class CartServiceTest {
         var result = cartService.getCart(new GetCartQuery(userId));
 
         // then
-        assertThat(result.getItems().get(0).isStockOk()).isTrue();
-        assertThat(result.getItems().get(0).getStock()).isEqualTo(100);
+        assertThat(result.items().get(0).stockOk()).isTrue();
+        assertThat(result.items().get(0).stock()).isEqualTo(100);
     }
 
     @Test
@@ -307,8 +307,8 @@ class CartServiceTest {
         var result = cartService.getCart(new GetCartQuery(userId));
 
         // then
-        assertThat(result.getItems().get(0).isStockOk()).isFalse();
-        assertThat(result.getItems().get(0).getStock()).isEqualTo(1);
+        assertThat(result.items().get(0).stockOk()).isFalse();
+        assertThat(result.items().get(0).stock()).isEqualTo(1);
     }
 
     // Helper methods for ID assignment

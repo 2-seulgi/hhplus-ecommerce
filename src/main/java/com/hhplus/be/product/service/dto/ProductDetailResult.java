@@ -1,7 +1,6 @@
 package com.hhplus.be.product.service.dto;
 
 import com.hhplus.be.product.domain.Product;
-import lombok.Getter;
 
 import java.time.Instant;
 
@@ -9,21 +8,22 @@ import java.time.Instant;
  * 상품 상세 조회 Result
  * API: GET /products/{productId}
  */
-@Getter
-public class ProductDetailResult {
-    private final Long productId;
-    private final String name;
-    private final String description;
-    private final int price;
-    private final int stock;
-    private final Instant createdAt;
-
-    public ProductDetailResult(Product product) {
-        this.productId = product.getProduct_id();
-        this.name = product.getName();
-        this.description = product.getDescription();
-        this.price = product.getPrice();
-        this.stock = product.getStock();
-        this.createdAt = product.getCreatedAt();
+public record ProductDetailResult(
+        Long productId,
+        String name,
+        String description,
+        int price,
+        int stock,
+        Instant createdAt
+) {
+    public static ProductDetailResult from(Product product) {
+        return new ProductDetailResult(
+                product.getProduct_id(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStock(),
+                product.getCreatedAt()
+        );
     }
 }

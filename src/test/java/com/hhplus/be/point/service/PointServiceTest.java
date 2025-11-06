@@ -45,14 +45,14 @@ class PointServiceTest {
         PointChargeResult result = pointService.charge(command);
 
         // then: 잔액 검증
-        assertThat(result.getBalanceAfter()).isEqualTo(15_000);
+        assertThat(result.balanceAfter()).isEqualTo(15_000);
         assertThat(user.getBalance()).isEqualTo(15_000);
 
         // then: 결과 DTO 검증
-        assertThat(result.getUserId()).isEqualTo(1L);
-        assertThat(result.getAmount()).isEqualTo(5000);
-        assertThat(result.getPointType()).isEqualTo(PointType.CHARGE);
-        assertThat(result.getCreatedAt()).isNotNull();
+        assertThat(result.userId()).isEqualTo(1L);
+        assertThat(result.amount()).isEqualTo(5000);
+        assertThat(result.pointType()).isEqualTo(PointType.CHARGE);
+        assertThat(result.createdAt()).isNotNull();
 
         // then: 호출 검증
         verify(userRepository).findById(1L);
@@ -102,12 +102,12 @@ class PointServiceTest {
 
         // then
         assertThat(history).hasSize(3);
-        assertThat(history.get(0).getPointType()).isEqualTo(PointType.CHARGE);
-        assertThat(history.get(0).getAmount()).isEqualTo(3000);
-        assertThat(history.get(1).getPointType()).isEqualTo(PointType.USE);
-        assertThat(history.get(1).getAmount()).isEqualTo(5000);
-        assertThat(history.get(2).getPointType()).isEqualTo(PointType.CHARGE);
-        assertThat(history.get(2).getAmount()).isEqualTo(10000);
+        assertThat(history.get(0).pointType()).isEqualTo(PointType.CHARGE);
+        assertThat(history.get(0).amount()).isEqualTo(3000);
+        assertThat(history.get(1).pointType()).isEqualTo(PointType.USE);
+        assertThat(history.get(1).amount()).isEqualTo(5000);
+        assertThat(history.get(2).pointType()).isEqualTo(PointType.CHARGE);
+        assertThat(history.get(2).amount()).isEqualTo(10000);
 
         verify(pointRepository).findByUserIdOrderByCreatedAtDesc(userId);
         verifyNoMoreInteractions(pointRepository);
@@ -143,8 +143,8 @@ class PointServiceTest {
         PointBalanceResult result = pointService.getBalance(query);
 
         // then
-        assertThat(result.getUserId()).isEqualTo(1L);
-        assertThat(result.getBalance()).isEqualTo(50000);
+        assertThat(result.userId()).isEqualTo(1L);
+        assertThat(result.balance()).isEqualTo(50000);
 
         verify(userRepository).findById(1L);
         verifyNoMoreInteractions(userRepository);

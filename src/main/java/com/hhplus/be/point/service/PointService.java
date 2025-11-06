@@ -42,7 +42,7 @@ public class PointService {
         userRepository.save(user);
 
         // 5. 결과 반환
-        return new PointChargeResult(point);
+        return PointChargeResult.from(point);
     }
 
     /**
@@ -55,7 +55,7 @@ public class PointService {
 
         // 2. DTO로 변환
         return points.stream()
-                .map(PointHistoryResult::new)
+                .map(PointHistoryResult::from)
                 .toList();
     }
 
