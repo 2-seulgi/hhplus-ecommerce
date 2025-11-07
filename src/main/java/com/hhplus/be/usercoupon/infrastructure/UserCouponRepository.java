@@ -11,4 +11,5 @@ public interface UserCouponRepository {
     List<UserCoupon> findByUserId(Long userId);
     List<UserCoupon> findByUserIdAndUsed(Long userId, boolean used);
     Optional<UserCoupon> findByUserIdAndCouponId(Long userId, Long couponId);
+    List<UserCoupon> findAll();
 }
