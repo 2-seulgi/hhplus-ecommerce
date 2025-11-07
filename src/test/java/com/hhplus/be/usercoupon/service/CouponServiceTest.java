@@ -23,8 +23,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -72,6 +78,49 @@ class CouponServiceTest {
         assertThat(coupon.getIssuedQuantity()).isEqualTo(1);  // 발급 수 증가 확인
         verify(couponRepository).save(coupon);
         verify(userCouponRepository).save(any(UserCoupon.class));
+    }
+
+    @Test
+    @DisplayName("동시에 10000요청해도 발급 수량이 총량을 초과하지 않는다")
+    void concurrentIssue_noOversell() throws Exception {
+        // Given
+        Long couponId = 10L;
+        int total = 10;
+        int requests = 10000;
+
+        // 쿠폰 초기화: 총 10개
+        couponRepository.save(Coupon.create("CODE10","쿠폰",DiscountType.FIXED,1000,
+                total, 0, Instant.now().minusSeconds(10), Instant.now().plusSeconds(3600),
+                Instant.now(), Instant.now().plusSeconds(7200)));
+
+        ExecutorService es = Executors.newFixedThreadPool(64); // 64개 스레드풀
+        CountDownLatch ready = new CountDownLatch(requests);
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(requests);
+
+        for (int i = 0; i < requests; i++) {
+            long userId = i+1;
+            es.submit(() -> {
+                ready.countDown();
+                try{
+                    start.await();
+                    couponService.issueCoupon(new IssueCouponCommand(userId, couponId));
+                }catch(Exception e){
+
+                }finally{
+                    done.countDown();
+                }
+                return null;
+            });
+        }
+        ready.await();
+        start.countDown();
+        assertTrue(done.await(15, TimeUnit.SECONDS));  // ✅ 15초로 수정
+        es.shutdown();
+
+        Coupon after = couponRepository.findById(couponId).orElseThrow();
+        assertEquals(total, after.getIssuedQuantity(), "발급 수량은 총 재고를 초과하면 안 됨");
+
     }
 
     @Test
