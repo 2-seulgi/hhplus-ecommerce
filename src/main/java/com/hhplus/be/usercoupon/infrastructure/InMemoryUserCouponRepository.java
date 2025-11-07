@@ -54,6 +54,11 @@ public class InMemoryUserCouponRepository implements UserCouponRepository {
                 .findFirst();
     }
 
+    @Override
+    public List<UserCoupon> findAll() {
+        return new ArrayList<>(storage.values());
+    }
+
     private void assignId(UserCoupon userCoupon, Long id) {
         try {
             Field field = UserCoupon.class.getDeclaredField("id");
