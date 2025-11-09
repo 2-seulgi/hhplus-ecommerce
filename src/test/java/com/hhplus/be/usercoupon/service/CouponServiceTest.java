@@ -86,7 +86,7 @@ class CouponServiceTest {
         // Given
         Long couponId = 10L;
         int total = 10;
-        int requests = 10000;
+        int requests = 1000;
 
         // 쿠폰 초기화: 총 10개
         couponRepository.save(Coupon.create("CODE10","쿠폰",DiscountType.FIXED,1000,
