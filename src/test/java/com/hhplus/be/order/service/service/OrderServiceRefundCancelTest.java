@@ -47,10 +47,6 @@ class OrderServiceRefundCancelTest {
     @Mock private ProductRepository productRepository;
     @Mock private OrderItemRepository orderItemRepository;
     @Mock private PointRepository pointRepository;
-    @Mock private CartRepository cartRepository;
-    @Mock private CouponRepository couponRepository;
-    @Mock private UserCouponRepository userCouponRepository;
-    @Mock private OrderDiscountRepository orderDiscountRepository;
     @Mock private Clock clock;
 
     @InjectMocks

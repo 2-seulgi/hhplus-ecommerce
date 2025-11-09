@@ -4,6 +4,7 @@ import com.hhplus.be.point.service.dto.*;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.point.domain.Point;
 import com.hhplus.be.point.infrastructure.PointRepository;
+import com.hhplus.be.user.domain.User;
 import com.hhplus.be.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -71,4 +72,46 @@ public class PointService {
         // 2. 잔액 반환
         return new PointBalanceResult(user.getId(), user.getBalance());
     }
+
+    /**
+     * 포인트 차감
+     */
+    public User deductPoints(Long userId, int amount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
+
+        // 도메인 모델에 비즈니스 로직 위임
+        user.use(amount); // InsufficientBalanceException 발생 가능
+
+        return user;
+    }
+
+    /**
+     * 포인트 히스토리 기록
+     */
+    public void recordUseHistory(Long userId, int amount, int balanceAfter) {
+        Point pointHistory = Point.use(userId, amount, balanceAfter);
+        pointRepository.save(pointHistory);
+    }
+
+    /**
+     * 포인트 환불
+     */
+    public User refundPoints(Long userId, int amount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
+
+        user.refund(amount);
+        return user;
+    }
+
+    /**
+     * 환불 히스토리 기록
+     */
+    public void recordRefundHistory(Long userId, int amount, int balanceAfter) {
+        Point pointHistory = Point.refund(userId, amount, balanceAfter);
+        pointRepository.save(pointHistory);
+    }
+
+
 }

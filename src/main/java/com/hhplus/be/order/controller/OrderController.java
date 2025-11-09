@@ -3,6 +3,7 @@ package com.hhplus.be.order.controller;
 import com.hhplus.be.order.controller.dto.*;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.*;
+import com.hhplus.be.order.usecase.ProcessPaymentUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderService orderService;
+    private final ProcessPaymentUseCase processPaymentUseCase;
 
     /**
      * 주문 생성
@@ -69,7 +71,7 @@ public class OrderController {
     ) {
         String couponCode = (request != null) ? request.couponCode() : null;
         PaymentCommand command = new PaymentCommand(userId, orderId, couponCode);
-        PaymentResult result = orderService.processPayment(command);
+        PaymentResult result = processPaymentUseCase.execute(command);
         return ResponseEntity.ok(PaymentResponse.from(result));
     }
 
