@@ -5,9 +5,7 @@ import com.hhplus.be.cart.infrastructure.CartRepository;
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.InvalidInputException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.coupon.domain.Coupon;
-import com.hhplus.be.coupon.domain.DiscountType;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
+
 import com.hhplus.be.order.domain.Order;
 import com.hhplus.be.order.domain.OrderStatus;
 import com.hhplus.be.order.infrastructure.OrderRepository;
@@ -16,8 +14,6 @@ import com.hhplus.be.order.service.dto.OrderDetailQuery;
 import com.hhplus.be.order.service.dto.OrderDetailResult;
 import com.hhplus.be.order.service.dto.OrderListQuery;
 import com.hhplus.be.order.service.dto.OrderListResult;
-import com.hhplus.be.order.service.dto.PaymentCommand;
-import com.hhplus.be.order.service.dto.PaymentResult;
 import com.hhplus.be.order.service.dto.RefundCommand;
 import com.hhplus.be.order.service.dto.RefundResult;
 import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
@@ -31,8 +27,6 @@ import com.hhplus.be.user.domain.User;
 import com.hhplus.be.user.infrastructure.UserRepository;
 import com.hhplus.be.orderdiscount.domain.OrderDiscount;
 import com.hhplus.be.orderdiscount.infrastructure.OrderDiscountRepository;
-import com.hhplus.be.usercoupon.UserCoupon;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,8 +51,6 @@ public class OrderService {
     private final OrderRepository orders;
     private final OrderItemRepository orderItems;
     private final PointRepository pointRepository;
-    private final CouponRepository couponRepository;
-    private final UserCouponRepository userCouponRepository;
     private final OrderDiscountRepository orderDiscountRepository;
     private final Clock clock;
 
