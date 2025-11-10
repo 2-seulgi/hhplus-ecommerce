@@ -1,6 +1,7 @@
 package com.hhplus.be.product.service;
 
 import com.hhplus.be.common.exception.ResourceNotFoundException;
+import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
 import com.hhplus.be.product.domain.Product;
 import com.hhplus.be.product.infrastructure.ProductRepository;
@@ -101,4 +102,29 @@ public class ProductService {
             return 3;
         }
     }
+
+    /**
+     * 여러 상품의 재고 일괄 차감 (UseCase용)
+     */
+    public void decreaseStocks(List<OrderItem> orderItems) {
+        for (OrderItem orderItem : orderItems) {
+            Product product = productRepository.findById(orderItem.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
+            product.decreaseStock(orderItem.getQuantity());
+        }
+    }
+
+    /**
+     * 여러 상품의 재고 일괄 복원 (UseCase용)
+     */
+    public void increaseStocks(List<OrderItem> orderItems) {
+        for (OrderItem item : orderItems) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
+
+            product.increaseStock(item.getQuantity());
+        }
+    }
+
+
 }
