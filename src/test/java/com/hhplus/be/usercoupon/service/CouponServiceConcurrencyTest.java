@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.*;
 class CouponServiceConcurrencyTest {
 
     @Autowired
-    private CouponService couponService;
+    private UserCouponService couponService;
 
     @Autowired
     private CouponRepository couponRepository;

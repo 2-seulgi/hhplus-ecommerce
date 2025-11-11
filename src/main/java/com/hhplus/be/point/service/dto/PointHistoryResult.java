@@ -3,7 +3,7 @@ package com.hhplus.be.point.service.dto;
 import com.hhplus.be.point.domain.Point;
 import com.hhplus.be.point.domain.PointType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 포인트 내역 단건 Result DTO
@@ -15,7 +15,7 @@ public record PointHistoryResult(
         PointType pointType,
         int amount,
         int balanceAfter,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static PointHistoryResult from(Point point) {
         return new PointHistoryResult(

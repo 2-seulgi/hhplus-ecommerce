@@ -3,7 +3,7 @@ package com.hhplus.be.point.service.dto;
 import com.hhplus.be.point.domain.Point;
 import com.hhplus.be.point.domain.PointType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 포인트 충전 UseCase Result DTO
@@ -15,7 +15,7 @@ public record PointChargeResult(
         PointType pointType,
         int amount,
         int balanceAfter,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {
     public static PointChargeResult from(Point point) {
         return new PointChargeResult(
