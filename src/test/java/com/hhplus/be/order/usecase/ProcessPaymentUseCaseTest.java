@@ -11,7 +11,9 @@ import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.service.ProductService;
 import com.hhplus.be.user.domain.User;
-import com.hhplus.be.usercoupon.service.CouponService;
+import com.hhplus.be.coupon.service.CouponService;
+import com.hhplus.be.coupon.service.dto.DiscountCalculationResult;
+import com.hhplus.be.coupon.service.dto.ValidateDiscountCommand;
 import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -78,8 +80,8 @@ class ProcessPaymentUseCaseTest {
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
         when(orderService.getOrderItems(orderId)).thenReturn(items);
-        when(couponService.validateAndCalculate(userId, null, totalAmount, fixedNow))
-                .thenReturn(DiscountCalculation.noDiscount());
+        when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
+                .thenReturn(DiscountCalculationResult.noDiscount());
         when(pointService.deductPoints(userId, totalAmount)).thenReturn(user);
 
         // confirmOrder 호출 시 실제 Order 객체 변경
@@ -105,11 +107,11 @@ class ProcessPaymentUseCaseTest {
         // Verify service calls
         verify(orderService).validateForPayment(userId, orderId, fixedNow);
         verify(orderService).getOrderItems(orderId);
-        verify(couponService).validateAndCalculate(userId, null, totalAmount, fixedNow);
+        verify(couponService).validateAndCalculateDiscount(any(ValidateDiscountCommand.class));
         verify(productService).decreaseStocks(items);
         verify(pointService).deductPoints(userId, totalAmount);
         verify(orderService).confirmOrder(order, totalAmount, fixedNow);
-        verify(orderService).saveDiscountInfo(orderId, DiscountCalculation.noDiscount());
+        verify(orderService).saveDiscountInfo(eq(orderId), any(DiscountCalculation.class));
         verify(pointService).recordUseHistory(userId, totalAmount, user.getBalance());
     }
 
@@ -135,12 +137,12 @@ class ProcessPaymentUseCaseTest {
         );
 
         User user = User.createWithId(userId, "홍길동", "hong@test.com", userBalance);
-        DiscountCalculation discount = new DiscountCalculation(1L, 10L, 5000, discountAmount);
+        DiscountCalculationResult discountResult = new DiscountCalculationResult(1L, 10L, 5000, discountAmount);
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
         when(orderService.getOrderItems(orderId)).thenReturn(items);
-        when(couponService.validateAndCalculate(userId, couponCode, totalAmount, fixedNow))
-                .thenReturn(discount);
+        when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
+                .thenReturn(discountResult);
         when(pointService.deductPoints(userId, finalAmount)).thenReturn(user);
 
         // confirmOrder 호출 시 실제 Order 객체 변경
@@ -162,8 +164,8 @@ class ProcessPaymentUseCaseTest {
         assertThat(result.discountAmount()).isEqualTo(discountAmount);
 
         // Verify coupon was marked as used
-        verify(couponService).markAsUsed(discount.userCouponId());
-        verify(orderService).saveDiscountInfo(orderId, discount);
+        verify(couponService).markAsUsed(discountResult.userCouponId());
+        verify(orderService).saveDiscountInfo(eq(orderId), any(DiscountCalculation.class));
     }
 
     @Test
@@ -202,7 +204,7 @@ class ProcessPaymentUseCaseTest {
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
         when(orderService.getOrderItems(orderId)).thenReturn(List.of());
-        when(couponService.validateAndCalculate(userId, couponCode, totalAmount, fixedNow))
+        when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
                 .thenThrow(new BusinessException("이미 사용된 쿠폰입니다", "COUPON_ALREADY_USED"));
 
         // When & Then
@@ -211,7 +213,7 @@ class ProcessPaymentUseCaseTest {
                 .hasMessageContaining("이미 사용");
 
         verify(orderService).validateForPayment(userId, orderId, fixedNow);
-        verify(couponService).validateAndCalculate(userId, couponCode, totalAmount, fixedNow);
+        verify(couponService).validateAndCalculateDiscount(any(ValidateDiscountCommand.class));
         verifyNoInteractions(productService, pointService);
     }
 
@@ -234,8 +236,8 @@ class ProcessPaymentUseCaseTest {
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
         when(orderService.getOrderItems(orderId)).thenReturn(items);
-        when(couponService.validateAndCalculate(userId, null, totalAmount, fixedNow))
-                .thenReturn(DiscountCalculation.noDiscount());
+        when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
+                .thenReturn(DiscountCalculationResult.noDiscount());
         when(pointService.deductPoints(userId, totalAmount))
                 .thenThrow(new InsufficientBalanceException("포인트 잔액 부족"));
 
@@ -268,8 +270,8 @@ class ProcessPaymentUseCaseTest {
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
         when(orderService.getOrderItems(orderId)).thenReturn(items);
-        when(couponService.validateAndCalculate(userId, null, totalAmount, fixedNow))
-                .thenReturn(DiscountCalculation.noDiscount());
+        when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
+                .thenReturn(DiscountCalculationResult.noDiscount());
         doThrow(new BusinessException("재고 부족", "OUT_OF_STOCK"))
                 .when(productService).decreaseStocks(items);
 

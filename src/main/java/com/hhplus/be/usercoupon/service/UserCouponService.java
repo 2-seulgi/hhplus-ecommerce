@@ -7,8 +7,6 @@ import com.hhplus.be.coupon.infrastructure.CouponRepository;
 import com.hhplus.be.user.infrastructure.UserRepository;
 import com.hhplus.be.usercoupon.UserCoupon;
 import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
-import com.hhplus.be.coupon.domain.DiscountType;
-import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
 import com.hhplus.be.usercoupon.service.dto.GetUserCouponsQuery;
 import com.hhplus.be.usercoupon.service.dto.GetUserCouponsResult;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponCommand;
@@ -24,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @RequiredArgsConstructor
-public class CouponService {
+public class UserCouponService {
 
     private final UserRepository userRepository;
     private final CouponRepository couponRepository;
@@ -132,66 +130,5 @@ public class CouponService {
         return new GetUserCouponsResult(couponInfos);
     }
 
-    /**
-     * 쿠폰 검증 및 할인 계산 (결제용)
-     */
-    public DiscountCalculation validateAndCalculate(
-            Long userId,
-            String couponCode,
-            int orderAmount,
-            Instant now
-    ) {
-        if (couponCode == null || couponCode.isBlank()) {
-            return DiscountCalculation.noDiscount();
-        }
 
-        // 1. 쿠폰 조회 및 검증
-        Coupon coupon = couponRepository.findByCode(couponCode)
-                .orElseThrow(() -> new BusinessException("유효하지 않은 쿠폰입니다", "COUPON_INVALID"));
-
-        // 2. 사용 기간 검증
-        if (now.isBefore(coupon.getUseStartAt()) || now.isAfter(coupon.getUseEndAt())) {
-            throw new BusinessException("쿠폰 사용 기간이 아닙니다", "COUPON_EXPIRED");
-        }
-
-        // 3. 사용자 쿠폰 조회 및 검증
-        UserCoupon userCoupon = userCouponRepository
-                .findByUserIdAndCouponId(userId, coupon.getId())
-                .orElseThrow(() -> new BusinessException("보유하지 않은 쿠폰입니다", "COUPON_INVALID"));
-
-        if (userCoupon.isUsed()) {
-            throw new BusinessException("이미 사용된 쿠폰입니다", "COUPON_ALREADY_USED");
-        }
-
-        // 4. 할인 금액 계산
-        int discountAmount = calculateDiscount(coupon, orderAmount);
-
-        return new DiscountCalculation(
-                userCoupon.getId(),
-                coupon.getId(),
-                coupon.getDiscountValue(),
-                discountAmount
-        );
-    }
-
-    /**
-     * 쿠폰 사용 처리
-     */
-    public void markAsUsed(Long userCouponId) {
-        UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
-                .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
-        userCoupon.use();
-    }
-
-    /**
-     * 할인 금액 계산
-     */
-    private int calculateDiscount(Coupon coupon, int orderAmount) {
-        if (coupon.getDiscountType() == DiscountType.FIXED) {
-            return coupon.getDiscountValue();
-        } else if (coupon.getDiscountType() == DiscountType.PERCENTAGE) {
-            return orderAmount * coupon.getDiscountValue() / 100;
-        }
-        return 0;
-    }
 }

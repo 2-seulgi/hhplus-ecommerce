@@ -65,6 +65,9 @@ public class CouponService {
         userCoupon.use();
     }
 
+    /**
+     * 할인 금액 계산
+     */
     private int calculateDiscount(Coupon coupon, int orderAmount) {
         if (coupon.getDiscountType() == DiscountType.FIXED) {
             return coupon.getDiscountValue();
@@ -73,7 +76,5 @@ public class CouponService {
         }
         return 0;
     }
-
-
 
 }
