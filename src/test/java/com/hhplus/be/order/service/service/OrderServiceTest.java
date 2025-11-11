@@ -8,20 +8,12 @@ import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.order.domain.Order;
 import com.hhplus.be.order.domain.OrderStatus;
 import com.hhplus.be.order.infrastructure.OrderRepository;
-import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.domain.PointType;
-import com.hhplus.be.point.infrastructure.PointRepository;
-import com.hhplus.be.point.service.PointService;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.user.infrastructure.UserRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import com.hhplus.be.order.service.OrderService;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
-import com.hhplus.be.orderdiscount.infrastructure.OrderDiscountRepository;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,7 +55,7 @@ class OrderServiceTest {
         when(clock.instant()).thenReturn(fixedNow);
 
         when(userRepository.findById(userId))
-                .thenReturn(Optional.of(User.createWithId(userId, "홍길동", "hong@example.com", 10_000)));
+                .thenReturn(Optional.of(User.create(userId, "홍길동", "hong@example.com", 10_000)));
 
         var cartItems = List.of(
                 CartItem.create(userId, 1L, 2) // productId=1, qty=2
@@ -102,7 +94,7 @@ class OrderServiceTest {
         // given
         Long userId = 1L;
         when(userRepository.findById(userId))
-                .thenReturn(Optional.of(User.createWithId(userId, "홍길동", "hong@example.com", 10_000)));
+                .thenReturn(Optional.of(User.create(userId, "홍길동", "hong@example.com", 10_000)));
         when(cartRepository.findByUserId(userId)).thenReturn(List.of());
 
         // when & then
@@ -132,7 +124,7 @@ class OrderServiceTest {
         // given
         Long userId = 1L;
         when(userRepository.findById(userId))
-                .thenReturn(Optional.of(User.createWithId(userId, "홍길동", "hong@example.com", 0)));
+                .thenReturn(Optional.of(User.create(userId, "홍길동", "hong@example.com", 0)));
 
         when(cartRepository.findByUserId(userId))
                 .thenReturn(List.of(CartItem.create(userId, 1L, 1)));

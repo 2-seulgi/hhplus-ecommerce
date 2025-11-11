@@ -8,19 +8,15 @@ import com.hhplus.be.order.infrastructure.OrderRepository;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.RefundCommand;
 import com.hhplus.be.order.service.dto.RefundResult;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
-import com.hhplus.be.cart.infrastructure.CartRepository;
-import com.hhplus.be.orderdiscount.infrastructure.OrderDiscountRepository;
 import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.domain.PointType;
-import com.hhplus.be.point.infrastructure.PointRepository;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.user.infrastructure.UserRepository;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.model.PointType;
+import com.hhplus.be.point.domain.repository.PointRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,16 +77,14 @@ class OrderServiceRefundCancelTest {
         when(orderItemRepository.findByOrderId(orderId)).thenReturn(orderItems);
 
         // 사용자 (현재 잔액 50000원)
-        User user = User.createWithId(userId, "홍길동", "hong@test.com", 50000);
+        User user = User.create(userId, "홍길동", "hong@test.com", 50000);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // 상품들 (재고 복구용)
         Product product1 = Product.create("상품A", "설명A", 10000, 10);
-        product1.assignId(1L);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product1));
 
         Product product2 = Product.create("상품B", "설명B", 10000, 5);
-        product2.assignId(2L);
         when(productRepository.findById(2L)).thenReturn(Optional.of(product2));
 
         // 포인트 히스토리 저장
@@ -182,11 +175,10 @@ class OrderServiceRefundCancelTest {
         );
         when(orderItemRepository.findByOrderId(orderId)).thenReturn(orderItems);
 
-        User user = User.createWithId(userId, "홍길동", "hong@test.com", 50000);
+        User user = User.create(userId, "홍길동", "hong@test.com", 50000);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         Product product = Product.create("상품", "설명", 30000, 10);
-        product.assignId(1L);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
         // When & Then

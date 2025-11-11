@@ -2,6 +2,7 @@ package com.hhplus.be.product.domain;
 
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.InvalidInputException;
+import com.hhplus.be.product.domain.model.Product;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

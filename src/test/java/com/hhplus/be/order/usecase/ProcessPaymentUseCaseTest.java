@@ -10,7 +10,7 @@ import com.hhplus.be.order.service.dto.PaymentResult;
 import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.service.ProductService;
-import com.hhplus.be.user.domain.User;
+import com.hhplus.be.user.domain.model.User;
 import com.hhplus.be.coupon.service.CouponService;
 import com.hhplus.be.coupon.service.dto.DiscountCalculationResult;
 import com.hhplus.be.coupon.service.dto.ValidateDiscountCommand;
@@ -76,7 +76,7 @@ class ProcessPaymentUseCaseTest {
                 OrderItem.create(orderId, 2L, "상품B", 30000, 1)
         );
 
-        User user = User.createWithId(userId, "홍길동", "hong@test.com", userBalance);
+        User user = User.create(userId, "홍길동", "hong@test.com", userBalance);
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
         when(orderService.getOrderItems(orderId)).thenReturn(items);
@@ -136,7 +136,7 @@ class ProcessPaymentUseCaseTest {
                 OrderItem.create(orderId, 1L, "상품A", 10000, 2)
         );
 
-        User user = User.createWithId(userId, "홍길동", "hong@test.com", userBalance);
+        User user = User.create(userId, "홍길동", "hong@test.com", userBalance);
         DiscountCalculationResult discountResult = new DiscountCalculationResult(1L, 10L, 5000, discountAmount);
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
