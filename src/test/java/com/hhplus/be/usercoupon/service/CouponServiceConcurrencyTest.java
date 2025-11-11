@@ -4,12 +4,11 @@ import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.coupon.domain.Coupon;
 import com.hhplus.be.coupon.domain.DiscountType;
 import com.hhplus.be.coupon.infrastructure.CouponRepository;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.user.infrastructure.UserRepository;
-import com.hhplus.be.usercoupon.UserCoupon;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
+import com.hhplus.be.usercoupon.domain.UserCoupon;
 import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponCommand;
-import com.hhplus.be.usercoupon.service.dto.IssueCouponResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,7 +71,7 @@ class CouponServiceConcurrencyTest {
         // 100명의 유저 생성
         List<User> users = new ArrayList<>();
         for (int i = 1; i <= 100; i++) {
-            User user = User.createWithId(
+            User user = User.create(
                     (long) i,
                     "유저" + i,
                     "user" + i + "@test.com",
@@ -150,7 +149,7 @@ class CouponServiceConcurrencyTest {
         }
 
         // 1명의 유저 생성
-        User user = User.createWithId(999L, "테스트유저", "test@test.com", 100000);
+        User user = User.create(999L, "테스트유저", "test@test.com", 100000);
         userRepository.save(user);
 
         // When: 1명이 5개 쿠폰을 동시에 발급
@@ -210,7 +209,7 @@ class CouponServiceConcurrencyTest {
         // 50명의 유저 생성
         List<User> users = new ArrayList<>();
         for (int i = 1; i <= 50; i++) {
-            User user = User.createWithId(
+            User user = User.create(
                     (long) (1000 + i),
                     "유저" + i,
                     "user" + i + "@multi.com",
@@ -275,7 +274,7 @@ class CouponServiceConcurrencyTest {
         couponRepository.save(coupon);
 
         // 유저 생성
-        User user = User.createWithId(2000L, "중복테스트유저", "dup@test.com", 100000);
+        User user = User.create(2000L, "중복테스트유저", "dup@test.com", 100000);
         userRepository.save(user);
 
         // When: 같은 유저가 같은 쿠폰을 10번 동시에 발급 시도
@@ -337,7 +336,7 @@ class CouponServiceConcurrencyTest {
         // 1000명의 유저 생성
         List<User> users = new ArrayList<>();
         for (int i = 1; i <= 1000; i++) {
-            User user = User.createWithId(
+            User user = User.create(
                     (long) (3000 + i),
                     "성능유저" + i,
                     "perf" + i + "@test.com",

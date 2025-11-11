@@ -2,9 +2,9 @@ package com.hhplus.be.product.service;
 
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.domain.StockStatus;
-import com.hhplus.be.product.infrastructure.ProductRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.model.StockStatus;
+import com.hhplus.be.product.domain.repository.ProductRepository;
 import com.hhplus.be.product.service.dto.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,9 +36,9 @@ class ProductServiceTest {
         // given
         var query = new ProductListQuery();
         var product1 = Product.create("무선 이어폰", "고음질 블루투스", 89000, 100);
+        assignProductId(product1, 1L);
         var product2 = Product.create("스마트워치", "건강 관리", 250000, 50);
-        product1.assignId(1L);
-        product2.assignId(2L);
+        assignProductId(product2, 2L);
 
         given(productRepository.findAll()).willReturn(List.of(product1, product2));
 
@@ -76,7 +76,7 @@ class ProductServiceTest {
         var productId = 1L;
         var query = new ProductDetailQuery(productId);
         var product = Product.create("무선 이어폰", "고음질 블루투스", 89000, 100);
-        product.assignId(productId);
+        assignProductId(product, productId);
 
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
 
@@ -112,7 +112,7 @@ class ProductServiceTest {
         var productId = 1L;
         var query = new ProductStockQuery(productId);
         var product = Product.create("무선 이어폰", "고음질 블루투스", 89000, 100);
-        product.assignId(productId);
+        assignProductId(product, productId);
 
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
 
@@ -146,7 +146,7 @@ class ProductServiceTest {
         var productId = 1L;
         var query = new ProductStockQuery(productId);
         var product = Product.create("품절 상품", "재고 없음", 89000, 0);
-        product.assignId(productId);
+        assignProductId(product, productId);
 
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
 
@@ -166,7 +166,7 @@ class ProductServiceTest {
         var productId = 1L;
         var query = new ProductStockQuery(productId);
         var product = Product.create("재고 부족 상품", "곧 품절", 89000, 5);
-        product.assignId(productId);
+        assignProductId(product, productId);
 
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
 
@@ -213,12 +213,19 @@ class ProductServiceTest {
 
     }
 
-
-
     private Product createProductWithId(Long id, String name, int price) {
-        var product = Product.create(name, "설명", price, 100);
-        product.assignId(id);
-        return product;
+        return Product.reconstruct(id, name, "설명", price, 100, 0,
+                java.time.Instant.now(), java.time.Instant.now());
+    }
+
+    private void assignProductId(Product product, Long id) {
+        try {
+            var field = Product.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(product, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 할당 실패", e);
+        }
     }
 
 
