@@ -1,6 +1,6 @@
 package com.hhplus.be.usercoupon.infrastructure;
 
-import com.hhplus.be.usercoupon.UserCoupon;
+import com.hhplus.be.usercoupon.domain.UserCoupon;
 
 import java.util.List;
 import java.util.Optional;

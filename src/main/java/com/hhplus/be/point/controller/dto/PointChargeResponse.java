@@ -1,7 +1,6 @@
 package com.hhplus.be.point.controller.dto;
 
 import com.hhplus.be.point.service.dto.PointChargeResult;
-import com.hhplus.be.point.domain.PointType;
 
 /**
  * 포인트 충전 Response DTO

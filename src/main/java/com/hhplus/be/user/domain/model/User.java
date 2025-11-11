@@ -1,40 +1,22 @@
-package com.hhplus.be.user.domain;
+package com.hhplus.be.user.domain.model;
 
 import com.hhplus.be.common.exception.InsufficientBalanceException;
 import com.hhplus.be.common.exception.InvalidInputException;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "users")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, length = 100)
     private String name;
-
-    @Column(nullable = false, unique = true)
     private String email;
-
-    @Column(nullable = false)
     private int balance;
-
-    @Version
     private int version;
-
-    @Column(nullable = false, updatable = false)
     private Instant createdAt;
-
-    @Column(nullable = false)
     private Instant updatedAt;
 
     private User(String name, String email, int balance) {
@@ -47,10 +29,15 @@ public class User {
     }
 
     // 초기 데이터용 (ID 포함)
-    public static User createWithId(Long id, String name, String email, int initialBalance) {
+    public static User create(Long id, String name, String email, int initialBalance) {
         User user = new User(name, email, initialBalance);
         user.id = id;
         return user;
+    }
+
+    public static User reconstruct(Long id, String name, String email, int balance,
+                                   int version, Instant createdAt, Instant updatedAt) {
+        return new User(id, name, email, balance, version, createdAt, updatedAt);
     }
 
     public void charge(int amount) {

@@ -1,7 +1,7 @@
 package com.hhplus.be.point.service.dto;
 
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.domain.PointType;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.model.PointType;
 
 import java.time.Instant;
 

@@ -19,12 +19,12 @@ import com.hhplus.be.order.service.dto.RefundResult;
 import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
 import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.infrastructure.PointRepository;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.user.infrastructure.UserRepository;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.repository.PointRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import com.hhplus.be.orderdiscount.domain.OrderDiscount;
 import com.hhplus.be.orderdiscount.infrastructure.OrderDiscountRepository;
 import lombok.RequiredArgsConstructor;
@@ -102,7 +102,7 @@ public class OrderService {
         List<OrderItem> items = lines.stream()
                 .map(l -> OrderItem.create(
                         saved.getId(),
-                        l.p().getProduct_id(),
+                        l.p().getId(),
                         l.p().getName(),
                         l.p().getPrice(), // 스냅샷 단가
                         l.qty()

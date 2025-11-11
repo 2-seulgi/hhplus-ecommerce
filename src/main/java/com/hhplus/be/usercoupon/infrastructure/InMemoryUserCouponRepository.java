@@ -1,6 +1,6 @@
 package com.hhplus.be.usercoupon.infrastructure;
 
-import com.hhplus.be.usercoupon.UserCoupon;
+import com.hhplus.be.usercoupon.domain.UserCoupon;
 import org.springframework.stereotype.Repository;
 
 import java.lang.reflect.Field;

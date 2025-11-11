@@ -1,4 +1,4 @@
-package com.hhplus.be.usercoupon;
+package com.hhplus.be.usercoupon.domain;
 
 import com.hhplus.be.common.exception.BusinessException;
 import jakarta.persistence.*;

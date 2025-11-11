@@ -1,4 +1,4 @@
-package com.hhplus.be.point.domain;
+package com.hhplus.be.point.domain.model;
 
 public enum PointType {
     CHARGE,  // 충전

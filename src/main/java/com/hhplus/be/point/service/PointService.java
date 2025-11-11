@@ -2,10 +2,10 @@ package com.hhplus.be.point.service;
 
 import com.hhplus.be.point.service.dto.*;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.infrastructure.PointRepository;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.user.infrastructure.UserRepository;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.repository.PointRepository;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

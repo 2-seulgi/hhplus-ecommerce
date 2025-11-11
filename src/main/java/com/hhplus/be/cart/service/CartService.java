@@ -4,8 +4,8 @@ import com.hhplus.be.cart.domain.CartItem;
 import com.hhplus.be.cart.infrastructure.CartRepository;
 import com.hhplus.be.cart.service.dto.*;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -8,7 +8,7 @@ import com.hhplus.be.order.service.dto.PaymentResult;
 import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.service.ProductService;
-import com.hhplus.be.user.domain.User;
+import com.hhplus.be.user.domain.model.User;
 import com.hhplus.be.coupon.service.CouponService;
 import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
 import lombok.RequiredArgsConstructor;

@@ -7,7 +7,7 @@ import com.hhplus.be.coupon.domain.DiscountType;
 import com.hhplus.be.coupon.infrastructure.CouponRepository;
 import com.hhplus.be.coupon.service.dto.DiscountCalculationResult;
 import com.hhplus.be.coupon.service.dto.ValidateDiscountCommand;
-import com.hhplus.be.usercoupon.UserCoupon;
+import com.hhplus.be.usercoupon.domain.UserCoupon;
 import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
