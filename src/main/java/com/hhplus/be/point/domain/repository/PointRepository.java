@@ -1,6 +1,6 @@
-package com.hhplus.be.point.infrastructure;
+package com.hhplus.be.point.domain.repository;
 
-import com.hhplus.be.point.domain.Point;
+import com.hhplus.be.point.domain.model.Point;
 
 import java.util.List;
 

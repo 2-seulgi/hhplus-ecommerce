@@ -1,4 +1,4 @@
-package com.hhplus.be.product.domain;
+package com.hhplus.be.product.domain.model;
 
 /**
  * 재고 상태

@@ -1,38 +1,35 @@
-package com.hhplus.be.point.domain;
+package com.hhplus.be.point.domain.model;
 
 import com.hhplus.be.common.exception.InvalidInputException;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
-@Entity
-@Table(name = "point")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Point {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
     private Long userId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private PointType pointType;
-
-    @Column(nullable = false)
     private int amount;
-
-    @Column(nullable = false)
     private int balanceAfter;
+    private Instant createdAt;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    public Point(Long id, Long userId, PointType pointType, int amount, int balanceAfter, Instant createdAt) {
+        this.id = id;
+        this.userId = userId;
+        this.pointType = pointType;
+        this.amount = amount;
+        this.balanceAfter = balanceAfter;
+        this.createdAt = createdAt;
+    }
+
+    public static Point reconstruct(Long id, Long userId, PointType pointType, int amount, int balanceAfter, Instant createdAt) {
+        return new Point(id, userId, pointType, amount, balanceAfter, createdAt);
+    }
 
     private Point(Long userId, PointType pointType, int amount, int balanceAfter) {
         validateUserId(userId);
@@ -43,7 +40,7 @@ public class Point {
         this.pointType = pointType;
         this.amount = amount;
         this.balanceAfter = balanceAfter;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = Instant.now();
     }
 
     public static Point charge(Long userId, int amount, int balanceAfter) {

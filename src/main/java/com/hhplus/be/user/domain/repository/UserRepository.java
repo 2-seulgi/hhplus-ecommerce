@@ -1,6 +1,6 @@
-package com.hhplus.be.user.infrastructure;
+package com.hhplus.be.user.domain.repository;
 
-import com.hhplus.be.user.domain.User;
+import com.hhplus.be.user.domain.model.User;
 
 import java.util.Optional;
 

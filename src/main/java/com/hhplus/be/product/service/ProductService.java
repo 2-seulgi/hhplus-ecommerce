@@ -3,15 +3,14 @@ package com.hhplus.be.product.service;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.orderitem.domain.OrderItem;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
 import com.hhplus.be.product.service.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +29,7 @@ public class ProductService {
      * API: GET /products?page=0&size=20
      */
     public ProductListResult getProducts(ProductListQuery query) {
-        List<com.hhplus.be.product.domain.Product> products = productRepository.findAll();
+        List<Product> products = productRepository.findAll();
         return ProductListResult.from(products);
     }
 
@@ -111,6 +110,7 @@ public class ProductService {
             Product product = productRepository.findById(orderItem.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
             product.decreaseStock(orderItem.getQuantity());
+            productRepository.save(product);  // 변경사항 저장
         }
     }
 
@@ -123,6 +123,7 @@ public class ProductService {
                     .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
 
             product.increaseStock(item.getQuantity());
+            productRepository.save(product);  // 변경사항 저장
         }
     }
 

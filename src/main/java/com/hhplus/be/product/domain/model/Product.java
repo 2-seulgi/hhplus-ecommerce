@@ -1,42 +1,27 @@
-package com.hhplus.be.product.domain;
+package com.hhplus.be.product.domain.model;
 
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.InvalidInputException;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-@Entity
-@Table
+/**
+ * 상품 Domain Model (순수 비즈니스 객체)
+ * Infrastructure(JPA) 의존성 없음
+ */
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long product_id;
-
-    @Column(nullable = false, length = 200)
+    private Long id;
     private String name;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(nullable = false)
     private int price;
-
-    @Column(nullable = false)
     private int stock;
-
-    @Version
     private int version;
-
-    @Column(nullable = false, updatable = false)
     private Instant createdAt;
-
-    @Column(nullable = false)
     private Instant updatedAt;
 
     // 상품은 이미 등록되어 있다고 가정 (테스트/초기 데이터 생성용)
@@ -52,6 +37,11 @@ public class Product {
 
     public static Product create(String name, String description, int price, int stock) {
         return new Product(name, description, price, stock);
+    }
+
+    public static Product reconstruct(Long id, String name, String description, int price, int stock,
+                                      int version, Instant createdAt, Instant updatedAt) {
+        return new Product(id, name, description, price, stock, version, createdAt, updatedAt);
     }
 
     // 재고 차감 (결제 시)
@@ -89,17 +79,4 @@ public class Product {
         }
     }
 
-    /**
-     * ID 할당 (Repository 전용 메서드)
-     * JPA 도입 시 제거 예정
-     *
-     * WARNING: 비즈니스 로직에서 호출 금지!
-     * Repository 구현체에서만 사용해야 합니다.
-     */
-    public void assignId(Long id) {
-        if (this.product_id != null) {
-            throw new IllegalStateException("ID는 한 번만 할당할 수 있습니다");
-        }
-        this.product_id = id;
-    }
 }
