@@ -7,8 +7,8 @@ import com.hhplus.be.common.exception.InvalidInputException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.order.domain.model.Order;
 import com.hhplus.be.order.domain.model.OrderStatus;
-import com.hhplus.be.order.infrastructure.OrderRepository;
-import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
+import com.hhplus.be.order.domain.repository.OrderRepository;
+import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.repository.ProductRepository;
 import com.hhplus.be.user.domain.model.User;
@@ -68,7 +68,7 @@ class OrderServiceTest {
         // save 시 ID 부여
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
             Order o = inv.getArgument(0);
-            o.assignId(12345L);
+            assignOrderId(o, 12345L);
             return o;
         });
 
@@ -137,6 +137,17 @@ class OrderServiceTest {
                 .isInstanceOf(BusinessException.class);
         verify(orderRepository, never()).save(any());
         verify(orderItemRepository, never()).saveAll(anyList());
+    }
+
+    // Helper method for ID assignment
+    private void assignOrderId(Order order, Long id) {
+        try {
+            var field = Order.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(order, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 할당 실패", e);
+        }
     }
 
 }

@@ -1,7 +1,7 @@
 package com.hhplus.be.product.service;
 
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
+import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.model.StockStatus;
 import com.hhplus.be.product.domain.repository.ProductRepository;

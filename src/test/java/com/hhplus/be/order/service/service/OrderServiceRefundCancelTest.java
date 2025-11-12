@@ -4,12 +4,12 @@ import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.order.domain.model.Order;
 import com.hhplus.be.order.domain.model.OrderStatus;
-import com.hhplus.be.order.infrastructure.OrderRepository;
+import com.hhplus.be.order.domain.repository.OrderRepository;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.RefundCommand;
 import com.hhplus.be.order.service.dto.RefundResult;
-import com.hhplus.be.orderitem.domain.OrderItem;
-import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
+import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.point.domain.model.Point;
 import com.hhplus.be.point.domain.model.PointType;
 import com.hhplus.be.point.domain.repository.PointRepository;
@@ -65,7 +65,7 @@ class OrderServiceRefundCancelTest {
 
         // CONFIRMED 상태 주문
         Order confirmedOrder = Order.create(userId, finalAmount, fixedNow.plusSeconds(1800));
-        confirmedOrder.assignId(orderId);
+        assignOrderId(confirmedOrder, orderId);
         confirmedOrder.confirm(finalAmount, fixedNow.minusSeconds(600)); // 10분 전 결제됨
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
 
@@ -146,7 +146,7 @@ class OrderServiceRefundCancelTest {
         Long otherUserId = 2L;
 
         Order order = Order.create(otherUserId, 30000, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
         // When & Then
@@ -165,7 +165,7 @@ class OrderServiceRefundCancelTest {
 
         // REFUNDED 상태 주문 (이미 환불됨)
         Order refundedOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        refundedOrder.assignId(orderId);
+        assignOrderId(refundedOrder, orderId);
         refundedOrder.confirm(30000, fixedNow.minusSeconds(1200)); // 결제 완료
         refundedOrder.refund(fixedNow.minusSeconds(600)); // 환불 완료
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(refundedOrder));
@@ -197,7 +197,7 @@ class OrderServiceRefundCancelTest {
 
         // PENDING 상태 주문
         Order pendingOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        pendingOrder.assignId(orderId);
+        assignOrderId(pendingOrder, orderId);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(pendingOrder));
 
         // When
@@ -230,7 +230,7 @@ class OrderServiceRefundCancelTest {
         Long otherUserId = 2L;
 
         Order order = Order.create(otherUserId, 30000, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
         // When & Then
@@ -248,7 +248,7 @@ class OrderServiceRefundCancelTest {
 
         // CONFIRMED 상태 주문 (이미 결제됨)
         Order confirmedOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        confirmedOrder.assignId(orderId);
+        assignOrderId(confirmedOrder, orderId);
         confirmedOrder.confirm(30000, fixedNow.minusSeconds(600));
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
 
@@ -267,7 +267,7 @@ class OrderServiceRefundCancelTest {
 
         // REFUNDED 상태 주문
         Order refundedOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        refundedOrder.assignId(orderId);
+        assignOrderId(refundedOrder, orderId);
         refundedOrder.confirm(30000, fixedNow.minusSeconds(600));
         refundedOrder.refund(fixedNow.minusSeconds(300));
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(refundedOrder));
@@ -282,7 +282,28 @@ class OrderServiceRefundCancelTest {
     private OrderItem createOrderItem(Long id, Long orderId, Long productId,
                                       String productName, int unitPrice, int quantity) {
         OrderItem item = OrderItem.create(orderId, productId, productName, unitPrice, quantity);
-        item.assignId(id);
+        assignOrderItemId(item, id);
         return item;
+    }
+
+    // Helper methods for ID assignment
+    private void assignOrderId(Order order, Long id) {
+        try {
+            var field = Order.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(order, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 할당 실패", e);
+        }
+    }
+
+    private void assignOrderItemId(OrderItem item, Long id) {
+        try {
+            var field = OrderItem.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(item, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 할당 실패", e);
+        }
     }
 }

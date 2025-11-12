@@ -1,13 +1,13 @@
 package com.hhplus.be.usercoupon.service;
 
 import com.hhplus.be.common.exception.BusinessException;
-import com.hhplus.be.coupon.domain.Coupon;
-import com.hhplus.be.coupon.domain.DiscountType;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
+import com.hhplus.be.coupon.domain.model.Coupon;
+import com.hhplus.be.coupon.domain.model.DiscountType;
+import com.hhplus.be.coupon.domain.repository.CouponRepository;
 import com.hhplus.be.user.domain.model.User;
 import com.hhplus.be.user.domain.repository.UserRepository;
-import com.hhplus.be.usercoupon.domain.UserCoupon;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
+import com.hhplus.be.usercoupon.domain.model.UserCoupon;
+import com.hhplus.be.usercoupon.domain.repository.UserCouponRepository;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

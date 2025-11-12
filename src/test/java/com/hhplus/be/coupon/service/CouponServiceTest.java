@@ -1,13 +1,13 @@
 package com.hhplus.be.coupon.service;
 
 import com.hhplus.be.common.exception.BusinessException;
-import com.hhplus.be.coupon.domain.Coupon;
-import com.hhplus.be.coupon.domain.DiscountType;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
+import com.hhplus.be.coupon.domain.model.Coupon;
+import com.hhplus.be.coupon.domain.model.DiscountType;
+import com.hhplus.be.coupon.domain.repository.CouponRepository;
 import com.hhplus.be.coupon.service.dto.DiscountCalculationResult;
 import com.hhplus.be.coupon.service.dto.ValidateDiscountCommand;
-import com.hhplus.be.usercoupon.domain.UserCoupon;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
+import com.hhplus.be.usercoupon.domain.model.UserCoupon;
+import com.hhplus.be.usercoupon.domain.repository.UserCouponRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +52,6 @@ class CouponServiceTest {
         Instant now = Instant.parse("2025-11-11T00:00:00Z");
 
         when(clock.instant()).thenReturn(now);
-        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
         Coupon coupon = Coupon.create(
                 couponCode,
@@ -94,7 +93,6 @@ class CouponServiceTest {
         Instant now = Instant.parse("2025-11-11T00:00:00Z");
 
         when(clock.instant()).thenReturn(now);
-        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
         Coupon coupon = Coupon.create(
                 couponCode,
@@ -191,7 +189,6 @@ class CouponServiceTest {
         Instant now = Instant.parse("2025-11-11T00:00:00Z");
 
         when(clock.instant()).thenReturn(now);
-        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
         Coupon coupon = Coupon.create(
                 couponCode,
@@ -225,7 +222,6 @@ class CouponServiceTest {
         Instant now = Instant.parse("2025-11-11T00:00:00Z");
 
         when(clock.instant()).thenReturn(now);
-        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
         Coupon coupon = Coupon.create(
                 couponCode,
@@ -259,7 +255,6 @@ class CouponServiceTest {
         Instant now = Instant.parse("2025-11-11T00:00:00Z");
 
         when(clock.instant()).thenReturn(now);
-        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
         Coupon coupon = Coupon.create(
                 couponCode,
@@ -295,7 +290,6 @@ class CouponServiceTest {
         Instant now = Instant.parse("2025-11-11T00:00:00Z");
 
         when(clock.instant()).thenReturn(now);
-        when(clock.getZone()).thenReturn(ZoneId.systemDefault());
 
         Coupon coupon = Coupon.create(
                 couponCode,
