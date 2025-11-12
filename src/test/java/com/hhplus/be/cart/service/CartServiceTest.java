@@ -1,7 +1,7 @@
 package com.hhplus.be.cart.service;
 
-import com.hhplus.be.cart.domain.CartItem;
-import com.hhplus.be.cart.infrastructure.CartRepository;
+import com.hhplus.be.cart.domain.model.CartItem;
+import com.hhplus.be.cart.domain.repository.CartRepository;
 import com.hhplus.be.cart.service.dto.AddCartItemCommand;
 import com.hhplus.be.cart.service.dto.DeleteCartItemCommand;
 import com.hhplus.be.cart.service.dto.GetCartQuery;

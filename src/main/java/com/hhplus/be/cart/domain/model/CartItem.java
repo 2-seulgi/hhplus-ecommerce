@@ -1,39 +1,25 @@
-package com.hhplus.be.cart.domain;
+package com.hhplus.be.cart.domain.model;
 
 import com.hhplus.be.common.exception.InvalidInputException;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "cart_items")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class CartItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
     private Long userId;
-
-    @Column(nullable = false)
     private Long productId;
-
-    @Column(nullable = false)
     private int quantity;
-
-    @Column(nullable = false, updatable = false)
     private Instant createdAt;
-
-    @Column(nullable = false)
     private Instant updatedAt;
 
     private CartItem(Long userId, Long productId, int quantity) {
+
         validateQuantity(quantity);
         this.userId = userId;
         this.productId = productId;
@@ -43,7 +29,12 @@ public class CartItem {
     }
 
     public static CartItem create(Long userId, Long productId, int quantity) {
-        return new CartItem(userId, productId, quantity);
+         return new CartItem(userId, productId, quantity);
+    }
+
+    public static CartItem reconstruct(Long id, Long userId, Long productId, int quantity,
+                                       Instant createdAt, Instant updatedAt) {
+        return new CartItem(id, userId, productId, quantity, createdAt, updatedAt);
     }
 
     public void changeQuantity(int quantity) {
@@ -55,6 +46,7 @@ public class CartItem {
     private void validateQuantity(int quantity) {
         if (quantity < 1) {
             throw new InvalidInputException("수량은 1 이상이어야 합니다");
+            // TODO: 수량 초과 관련 유효성 체크 추가
         }
     }
 }

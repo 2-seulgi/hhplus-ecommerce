@@ -1,6 +1,6 @@
 package com.hhplus.be.order.controller.dto;
 
-import com.hhplus.be.order.domain.OrderStatus;
+import com.hhplus.be.order.domain.model.OrderStatus;
 import com.hhplus.be.order.service.dto.OrderDetailResult;
 
 import java.time.Instant;

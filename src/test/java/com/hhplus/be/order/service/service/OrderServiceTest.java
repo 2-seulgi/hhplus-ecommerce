@@ -1,12 +1,12 @@
 package com.hhplus.be.order.service.service;
 
-import com.hhplus.be.cart.domain.CartItem;
-import com.hhplus.be.cart.infrastructure.CartRepository;
+import com.hhplus.be.cart.domain.model.CartItem;
+import com.hhplus.be.cart.domain.repository.CartRepository;
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.InvalidInputException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.order.domain.Order;
-import com.hhplus.be.order.domain.OrderStatus;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
 import com.hhplus.be.order.infrastructure.OrderRepository;
 import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
 import com.hhplus.be.product.domain.model.Product;

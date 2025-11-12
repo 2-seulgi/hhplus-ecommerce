@@ -2,8 +2,8 @@ package com.hhplus.be.order.usecase;
 
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.InsufficientBalanceException;
-import com.hhplus.be.order.domain.Order;
-import com.hhplus.be.order.domain.OrderStatus;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.PaymentCommand;
 import com.hhplus.be.order.service.dto.PaymentResult;

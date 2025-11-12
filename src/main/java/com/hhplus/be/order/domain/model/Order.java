@@ -1,4 +1,4 @@
-package com.hhplus.be.order.domain;
+package com.hhplus.be.order.domain.model;
 
 import com.hhplus.be.common.exception.BusinessException;
 import jakarta.persistence.*;
