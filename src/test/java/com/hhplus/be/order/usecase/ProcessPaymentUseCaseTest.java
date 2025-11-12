@@ -7,7 +7,7 @@ import com.hhplus.be.order.domain.model.OrderStatus;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.PaymentCommand;
 import com.hhplus.be.order.service.dto.PaymentResult;
-import com.hhplus.be.orderitem.domain.OrderItem;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
 import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.service.ProductService;
 import com.hhplus.be.user.domain.model.User;
@@ -69,7 +69,7 @@ class ProcessPaymentUseCaseTest {
         PaymentCommand command = new PaymentCommand(userId, orderId, null);
 
         Order order = Order.create(userId, totalAmount, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
 
         List<OrderItem> items = List.of(
                 OrderItem.create(orderId, 1L, "상품A", 10000, 2),
@@ -130,7 +130,7 @@ class ProcessPaymentUseCaseTest {
         PaymentCommand command = new PaymentCommand(userId, orderId, couponCode);
 
         Order order = Order.create(userId, totalAmount, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
 
         List<OrderItem> items = List.of(
                 OrderItem.create(orderId, 1L, "상품A", 10000, 2)
@@ -200,7 +200,7 @@ class ProcessPaymentUseCaseTest {
         PaymentCommand command = new PaymentCommand(userId, orderId, couponCode);
 
         Order order = Order.create(userId, totalAmount, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
 
         when(orderService.validateForPayment(userId, orderId, fixedNow)).thenReturn(order);
         when(orderService.getOrderItems(orderId)).thenReturn(List.of());
@@ -228,7 +228,7 @@ class ProcessPaymentUseCaseTest {
         PaymentCommand command = new PaymentCommand(userId, orderId, null);
 
         Order order = Order.create(userId, totalAmount, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
 
         List<OrderItem> items = List.of(
                 OrderItem.create(orderId, 1L, "상품A", 10000, 2)
@@ -262,7 +262,7 @@ class ProcessPaymentUseCaseTest {
         PaymentCommand command = new PaymentCommand(userId, orderId, null);
 
         Order order = Order.create(userId, totalAmount, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
 
         List<OrderItem> items = List.of(
                 OrderItem.create(orderId, 1L, "상품A", 10000, 2)
@@ -283,5 +283,16 @@ class ProcessPaymentUseCaseTest {
         verify(productService).decreaseStocks(items);
         verifyNoInteractions(pointService);
         verify(orderService, never()).confirmOrder(any(), anyInt(), any());
+    }
+
+    // Helper method for ID assignment
+    private void assignOrderId(Order order, Long id) {
+        try {
+            var field = Order.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(order, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 할당 실패", e);
+        }
     }
 }

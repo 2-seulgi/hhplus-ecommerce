@@ -1,5 +1,6 @@
 package com.hhplus.be.orderitem.domain;
 
+import com.hhplus.be.orderitem.domain.model.OrderItem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

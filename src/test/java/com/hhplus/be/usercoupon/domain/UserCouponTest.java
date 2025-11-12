@@ -1,6 +1,7 @@
 package com.hhplus.be.usercoupon.domain;
 
 import com.hhplus.be.common.exception.BusinessException;
+import com.hhplus.be.usercoupon.domain.model.UserCoupon;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
