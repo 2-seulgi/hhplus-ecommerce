@@ -8,7 +8,7 @@ CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-    balance DECIMAL(10,2) NOT NULL DEFAULT 0,
+    balance INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
@@ -20,10 +20,10 @@ CREATE INDEX idx_users_email ON users(email);
 
 -- 2. PRODUCT (상품)
 CREATE TABLE product (
-    product_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     description TEXT,
-    price DECIMAL(10,2) NOT NULL,
+    price INT NOT NULL,
     stock INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -43,7 +43,7 @@ CREATE TABLE cart_items (
     updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT chk_cart_quantity CHECK (quantity > 0),
     CONSTRAINT fk_cart_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_cart_product FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_cart_product FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
     UNIQUE KEY uk_cart_user_product (user_id, product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -55,8 +55,8 @@ CREATE TABLE orders (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL,
-    total_amount DECIMAL(10,2) NOT NULL,
-    final_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total_amount INT NOT NULL,
+    final_amount INT NOT NULL DEFAULT 0,
     expires_at TIMESTAMP(6) NOT NULL,
     paid_at TIMESTAMP(6),
     canceled_at TIMESTAMP(6),
@@ -77,13 +77,13 @@ CREATE TABLE order_items (
     order_id BIGINT NOT NULL,
     product_id BIGINT NOT NULL,
     product_name VARCHAR(200) NOT NULL,
-    unit_price DECIMAL(10,2) NOT NULL,
+    unit_price INT NOT NULL,
     quantity INT NOT NULL,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT chk_order_item_unit_price CHECK (unit_price >= 0),
     CONSTRAINT chk_order_item_quantity CHECK (quantity > 0),
     CONSTRAINT fk_order_item_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    CONSTRAINT fk_order_item_product FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE RESTRICT
+    CONSTRAINT fk_order_item_product FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE INDEX idx_order_item_order_id ON order_items(order_id);
@@ -95,8 +95,8 @@ CREATE TABLE point (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
     point_type VARCHAR(20) NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    balance_after DECIMAL(10,2) NOT NULL,
+    amount INT NOT NULL,
+    balance_after INT NOT NULL,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT chk_point_amount CHECK (amount > 0),
     CONSTRAINT chk_point_balance_after CHECK (balance_after >= 0),
@@ -112,7 +112,7 @@ CREATE TABLE coupons (
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL,
     discount_type VARCHAR(20) NOT NULL,
-    discount_value DECIMAL(10,2) NOT NULL,
+    discount_value INT NOT NULL,
     total_quantity INT NOT NULL,
     issued_quantity INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
@@ -154,8 +154,8 @@ CREATE TABLE order_discounts (
     order_id BIGINT NOT NULL,
     user_coupon_id BIGINT,
     discount_type VARCHAR(20) NOT NULL,
-    discount_value DECIMAL(10,2) NOT NULL,
-    discount_amount DECIMAL(10,2) NOT NULL,
+    discount_value INT NOT NULL,
+    discount_amount INT NOT NULL,
     created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT chk_order_discount_amount CHECK (discount_amount >= 0),
     CONSTRAINT fk_order_discount_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
