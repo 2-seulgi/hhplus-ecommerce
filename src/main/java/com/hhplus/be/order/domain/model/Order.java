@@ -1,51 +1,25 @@
 package com.hhplus.be.order.domain.model;
 
 import com.hhplus.be.common.exception.BusinessException;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "orders")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
     private Long userId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private OrderStatus status;
-
-    @Column(nullable = false)
     private int totalAmount;
-
-    @Column(nullable = false)
     private int finalAmount; // 기본 0, 결제 시 업데이트
-
-    @Column(nullable = false)
     private Instant expiresAt;
-
-    @Column
     private Instant paidAt;
-
-    @Column
     private Instant canceledAt;
-
-    @Column
     private Instant refundedAt;
-
-    @Column(nullable = false, updatable = false)
     private Instant createdAt;
-
-    @Column(nullable = false)
     private Instant updatedAt;
 
     private Order(Long userId, int totalAmount, Instant expiresAt) {
@@ -61,6 +35,33 @@ public class Order {
     public static Order create(Long userId, int totalAmount, Instant expiresAt) {
         return new Order(userId, totalAmount, expiresAt);
     }
+
+    // Mapper용 reconstruct 생성자
+    private Order(Long id, Long userId, OrderStatus status, int totalAmount,
+                  int finalAmount, Instant expiresAt, Instant paidAt,
+                  Instant canceledAt, Instant refundedAt,
+                  Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.userId = userId;
+        this.status = status;
+        this.totalAmount = totalAmount;
+        this.finalAmount = finalAmount;
+        this.expiresAt = expiresAt;
+        this.paidAt = paidAt;
+        this.canceledAt = canceledAt;
+        this.refundedAt = refundedAt;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public static Order reconstruct(Long id, Long userId, OrderStatus status, int totalAmount,
+                                    int finalAmount, Instant expiresAt, Instant paidAt,
+                                    Instant canceledAt, Instant refundedAt,
+                                    Instant createdAt, Instant updatedAt) {
+        return new Order(id, userId, status, totalAmount, finalAmount,
+                expiresAt, paidAt, canceledAt, refundedAt, createdAt, updatedAt);
+    }
+
 
     // 결제 완료( PENDING -> CONFIRMED )
     public void confirm(int finalAmount, Instant paidAt) {
@@ -96,21 +97,6 @@ public class Order {
     // 주문 만료 여부 확인
     public boolean isExpired(Instant now) {
         return now.isAfter(this.expiresAt) || now.equals(this.expiresAt);
-    }
-
-
-    /**
-     * ID 할당 (Repository 전용 메서드)
-     * JPA 도입 시 제거 예정
-     *
-     * WARNING: 비즈니스 로직에서 호출 금지!
-     * Repository 구현체에서만 사용해야 합니다.
-     */
-    public void assignId(Long id) {
-        if (this.id != null) {
-            throw new IllegalStateException("ID는 한 번만 할당할 수 있습니다");
-        }
-        this.id = id;
     }
 
 }

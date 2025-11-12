@@ -1,4 +1,4 @@
-package com.hhplus.be.coupon.domain;
+package com.hhplus.be.coupon.domain.model;
 
 public enum DiscountType {
     FIXED,        // 정액 할인

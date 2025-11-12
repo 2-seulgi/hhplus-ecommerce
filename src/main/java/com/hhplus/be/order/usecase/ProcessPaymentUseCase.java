@@ -5,7 +5,7 @@ import com.hhplus.be.order.domain.model.Order;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.PaymentCommand;
 import com.hhplus.be.order.service.dto.PaymentResult;
-import com.hhplus.be.orderitem.domain.OrderItem;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
 import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.service.ProductService;
 import com.hhplus.be.user.domain.model.User;

@@ -1,6 +1,6 @@
-package com.hhplus.be.orderitem.infrastructure;
+package com.hhplus.be.orderitem.domain.repository;
 
-import com.hhplus.be.orderitem.domain.OrderItem;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
 
 import java.time.Instant;
 import java.util.List;
