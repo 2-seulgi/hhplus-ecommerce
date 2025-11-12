@@ -1,7 +1,7 @@
 package com.hhplus.be.cart.service;
 
-import com.hhplus.be.cart.domain.CartItem;
-import com.hhplus.be.cart.infrastructure.CartRepository;
+import com.hhplus.be.cart.domain.model.CartItem;
+import com.hhplus.be.cart.domain.repository.CartRepository;
 import com.hhplus.be.cart.service.dto.*;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.product.domain.model.Product;

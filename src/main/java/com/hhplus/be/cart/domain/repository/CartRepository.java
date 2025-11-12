@@ -1,6 +1,6 @@
-package com.hhplus.be.cart.infrastructure;
+package com.hhplus.be.cart.domain.repository;
 
-import com.hhplus.be.cart.domain.CartItem;
+import com.hhplus.be.cart.domain.model.CartItem;
 
 import java.util.List;
 import java.util.Optional;

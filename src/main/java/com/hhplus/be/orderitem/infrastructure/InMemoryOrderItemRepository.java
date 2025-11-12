@@ -1,7 +1,7 @@
 package com.hhplus.be.orderitem.infrastructure;
 
-import com.hhplus.be.order.domain.Order;
-import com.hhplus.be.order.domain.OrderStatus;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
 import com.hhplus.be.order.infrastructure.OrderRepository;
 import com.hhplus.be.orderitem.domain.OrderItem;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.hhplus.be.order.infrastructure;
 
-import com.hhplus.be.order.domain.Order;
+import com.hhplus.be.order.domain.model.Order;
 
 import java.util.List;
 import java.util.Optional;
