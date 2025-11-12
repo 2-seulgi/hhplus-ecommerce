@@ -11,7 +11,7 @@ INSERT INTO users (id, name, email, balance, version, created_at, updated_at) VA
 (5, '최지은', 'choi@test.com', 1000000, 0, NOW(6), NOW(6));
 
 -- 2. 테스트 상품 (다양한 가격대와 재고)
-INSERT INTO product (product_id, name, description, price, stock, version, created_at, updated_at) VALUES
+INSERT INTO product (id, name, description, price, stock, version, created_at, updated_at) VALUES
 (1, '무선 이어폰', '고품질 블루투스 무선 이어폰', 89000, 100, 0, NOW(6), NOW(6)),
 (2, '스마트워치', '건강 관리 기능이 있는 스마트워치', 159000, 50, 0, NOW(6), NOW(6)),
 (3, 'USB 충전기', '고속 충전 지원 USB 충전기', 25000, 200, 0, NOW(6), NOW(6)),
