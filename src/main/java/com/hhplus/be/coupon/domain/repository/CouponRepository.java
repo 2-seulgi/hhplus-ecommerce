@@ -1,6 +1,6 @@
-package com.hhplus.be.coupon.infrastructure;
+package com.hhplus.be.coupon.domain.repository;
 
-import com.hhplus.be.coupon.domain.Coupon;
+import com.hhplus.be.coupon.domain.model.Coupon;
 
 import java.util.List;
 import java.util.Optional;

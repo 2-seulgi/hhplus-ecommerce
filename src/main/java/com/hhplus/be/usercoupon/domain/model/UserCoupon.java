@@ -1,36 +1,20 @@
-package com.hhplus.be.usercoupon.domain;
+package com.hhplus.be.usercoupon.domain.model;
 
 import com.hhplus.be.common.exception.BusinessException;
-import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "user_coupons")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserCoupon {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
     private Long userId;
-
-    @Column(nullable = false)
     private Long couponId;
-
-    @Column(nullable = false)
     private boolean used;
-
-    @Column
     private Instant usedAt;
-
-    @Column(nullable = false)
     private Instant issuedAt;
 
     private UserCoupon(Long userId, Long couponId, Instant issuedAt) {
@@ -43,6 +27,22 @@ public class UserCoupon {
 
     public static UserCoupon create(Long userId, Long couponId, Instant issuedAt) {
         return new UserCoupon(userId, couponId, issuedAt);
+    }
+
+    // Mapper용 reconstruct 생성자
+    private UserCoupon(Long id, Long userId, Long couponId, boolean used,
+                       Instant usedAt, Instant issuedAt) {
+        this.id = id;
+        this.userId = userId;
+        this.couponId = couponId;
+        this.used = used;
+        this.usedAt = usedAt;
+        this.issuedAt = issuedAt;
+    }
+
+    public static UserCoupon reconstruct(Long id, Long userId, Long couponId,
+                                         boolean used, Instant usedAt, Instant issuedAt) {
+        return new UserCoupon(id, userId, couponId, used, usedAt, issuedAt);
     }
 
     // 쿠폰 사용 처리

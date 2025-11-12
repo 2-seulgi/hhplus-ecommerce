@@ -1,8 +1,8 @@
 package com.hhplus.be.usercoupon.service.dto;
 
-import com.hhplus.be.coupon.domain.Coupon;
-import com.hhplus.be.coupon.domain.DiscountType;
-import com.hhplus.be.usercoupon.domain.UserCoupon;
+import com.hhplus.be.coupon.domain.model.Coupon;
+import com.hhplus.be.coupon.domain.model.DiscountType;
+import com.hhplus.be.usercoupon.domain.model.UserCoupon;
 
 import java.time.Instant;
 

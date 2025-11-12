@@ -1,4 +1,4 @@
-package com.hhplus.be.orderdiscount.infrastructure;
+package com.hhplus.be.orderdiscount.domain.repository;
 
 import com.hhplus.be.orderdiscount.domain.OrderDiscount;
 

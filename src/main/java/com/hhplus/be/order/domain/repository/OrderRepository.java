@@ -1,4 +1,4 @@
-package com.hhplus.be.order.infrastructure;
+package com.hhplus.be.order.domain.repository;
 
 import com.hhplus.be.order.domain.model.Order;
 

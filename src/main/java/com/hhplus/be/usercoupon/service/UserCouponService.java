@@ -2,11 +2,11 @@ package com.hhplus.be.usercoupon.service;
 
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.coupon.domain.Coupon;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
+import com.hhplus.be.coupon.domain.model.Coupon;
+import com.hhplus.be.coupon.domain.repository.CouponRepository;
 import com.hhplus.be.user.domain.repository.UserRepository;
-import com.hhplus.be.usercoupon.domain.UserCoupon;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
+import com.hhplus.be.usercoupon.domain.model.UserCoupon;
+import com.hhplus.be.usercoupon.domain.repository.UserCouponRepository;
 import com.hhplus.be.usercoupon.service.dto.GetUserCouponsQuery;
 import com.hhplus.be.usercoupon.service.dto.GetUserCouponsResult;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponCommand;
