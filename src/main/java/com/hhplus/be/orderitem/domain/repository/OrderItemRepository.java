@@ -24,4 +24,6 @@ public interface OrderItemRepository {
      * @return Map<상품ID, 판매수량>
      */
     Map<Long, Integer> countSalesByProductSince(Instant since);
+
+    void deleteAll();
 }

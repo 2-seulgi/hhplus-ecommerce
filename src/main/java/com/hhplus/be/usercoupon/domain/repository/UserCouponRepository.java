@@ -12,4 +12,6 @@ public interface UserCouponRepository {
     List<UserCoupon> findByUserIdAndUsed(Long userId, boolean used);
     Optional<UserCoupon> findByUserIdAndCouponId(Long userId, Long couponId);
     List<UserCoupon> findAll();
+
+    void deleteAll();
 }

@@ -27,4 +27,9 @@ public class UserRepositoryImpl implements UserRepository {
         return userMapper.toDomain(savedEntity);
     }
 
+    @Override
+    public void deleteAll() {
+        userJpaRepository.deleteAll();
+    }
+
 }
