@@ -1,9 +1,6 @@
 package com.hhplus.be.point.controller.dto;
 
 import com.hhplus.be.point.service.dto.PointChargeResult;
-import com.hhplus.be.point.domain.PointType;
-
-import java.time.format.DateTimeFormatter;
 
 /**
  * 포인트 충전 Response DTO
@@ -17,8 +14,6 @@ public record PointChargeResponse(
         int balance,
         String chargedAt
 ) {
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
-
     public static PointChargeResponse from(PointChargeResult result) {
         return new PointChargeResponse(
                 result.pointId(),
@@ -26,7 +21,7 @@ public record PointChargeResponse(
                 result.pointType().name(),
                 result.amount(),
                 result.balanceAfter(),
-                result.createdAt().format(FORMATTER)
+                result.createdAt().toString()  // Instant -> ISO-8601 string
         );
     }
 }

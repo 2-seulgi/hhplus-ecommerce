@@ -2,13 +2,13 @@ package com.hhplus.be.coupon.service;
 
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.coupon.domain.Coupon;
-import com.hhplus.be.coupon.domain.DiscountType;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
+import com.hhplus.be.coupon.domain.model.Coupon;
+import com.hhplus.be.coupon.domain.model.DiscountType;
+import com.hhplus.be.coupon.domain.repository.CouponRepository;
 import com.hhplus.be.coupon.service.dto.DiscountCalculationResult;
 import com.hhplus.be.coupon.service.dto.ValidateDiscountCommand;
-import com.hhplus.be.usercoupon.UserCoupon;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
+import com.hhplus.be.usercoupon.domain.model.UserCoupon;
+import com.hhplus.be.usercoupon.domain.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -65,6 +65,9 @@ public class CouponService {
         userCoupon.use();
     }
 
+    /**
+     * 할인 금액 계산
+     */
     private int calculateDiscount(Coupon coupon, int orderAmount) {
         if (coupon.getDiscountType() == DiscountType.FIXED) {
             return coupon.getDiscountValue();
@@ -73,7 +76,5 @@ public class CouponService {
         }
         return 0;
     }
-
-
 
 }

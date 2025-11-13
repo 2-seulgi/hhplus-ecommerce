@@ -1,14 +1,13 @@
 package com.hhplus.be.orderdiscount.infrastructure;
 
 import com.hhplus.be.orderdiscount.domain.OrderDiscount;
-import org.springframework.stereotype.Repository;
+import com.hhplus.be.orderdiscount.domain.repository.OrderDiscountRepository;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Repository
 public class InMemoryOrderDiscountRepository implements OrderDiscountRepository {
 
     private final Map<Long, OrderDiscount> store = new ConcurrentHashMap<>();

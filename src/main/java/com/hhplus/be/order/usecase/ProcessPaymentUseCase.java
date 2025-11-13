@@ -1,14 +1,15 @@
 package com.hhplus.be.order.usecase;
 
-import com.hhplus.be.order.domain.Order;
+import com.hhplus.be.coupon.service.dto.ValidateDiscountCommand;
+import com.hhplus.be.order.domain.model.Order;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.PaymentCommand;
 import com.hhplus.be.order.service.dto.PaymentResult;
-import com.hhplus.be.orderitem.domain.OrderItem;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
 import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.service.ProductService;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.usercoupon.service.CouponService;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.coupon.service.CouponService;
 import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,11 +47,16 @@ public class ProcessPaymentUseCase {
         List<OrderItem> items = orderService.getOrderItems(command.orderId());
 
         // 3. 쿠폰 할인 계산 (Coupon 도메인)
-        DiscountCalculation discount = couponService.validateAndCalculate(
-                command.userId(),
-                command.couponCode(),
-                order.getTotalAmount(),
-                now
+        var couponResult = couponService.validateAndCalculateDiscount(
+                new ValidateDiscountCommand(command.userId(), command.couponCode() , order.getTotalAmount())
+        );
+
+        // 매핑 (쿠폰 도메인 -> 주문 도메인)
+        var discount = new DiscountCalculation(
+                couponResult.userCouponId(),
+                couponResult.couponId(),
+                couponResult.discountValue(),
+                couponResult.discountAmount()
         );
 
         // 4. 재고 차감 (Product 도메인)

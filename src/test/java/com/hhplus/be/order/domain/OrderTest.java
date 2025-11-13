@@ -1,6 +1,8 @@
 package com.hhplus.be.order.domain;
 
 import com.hhplus.be.common.exception.BusinessException;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

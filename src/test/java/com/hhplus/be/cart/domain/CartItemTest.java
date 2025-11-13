@@ -1,5 +1,6 @@
 package com.hhplus.be.cart.domain;
 
+import com.hhplus.be.cart.domain.model.CartItem;
 import com.hhplus.be.common.exception.InvalidInputException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

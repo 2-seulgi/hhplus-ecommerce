@@ -1,14 +1,14 @@
 package com.hhplus.be.cart.service;
 
-import com.hhplus.be.cart.domain.CartItem;
-import com.hhplus.be.cart.infrastructure.CartRepository;
+import com.hhplus.be.cart.domain.model.CartItem;
+import com.hhplus.be.cart.domain.repository.CartRepository;
 import com.hhplus.be.cart.service.dto.AddCartItemCommand;
 import com.hhplus.be.cart.service.dto.DeleteCartItemCommand;
 import com.hhplus.be.cart.service.dto.GetCartQuery;
 import com.hhplus.be.cart.service.dto.UpdateCartItemQuantityCommand;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -314,7 +314,7 @@ class CartServiceTest {
     // Helper methods for ID assignment
     private void assignProductId(Product product, Long id) {
         try {
-            var field = Product.class.getDeclaredField("product_id");
+            var field = Product.class.getDeclaredField("id");
             field.setAccessible(true);
             field.set(product, id);
         } catch (Exception e) {

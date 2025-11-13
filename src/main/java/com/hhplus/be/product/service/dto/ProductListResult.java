@@ -1,6 +1,6 @@
 package com.hhplus.be.product.service.dto;
 
-import com.hhplus.be.product.domain.Product;
+import com.hhplus.be.product.domain.model.Product;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ public record ProductListResult(
     ) {
         public static ProductItem from(Product product) {
             return new ProductItem(
-                    product.getProduct_id(),
+                    product.getId(),
                     product.getName(),
                     product.getDescription(),
                     product.getPrice()

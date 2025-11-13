@@ -1,6 +1,6 @@
 package com.hhplus.be.product.controller.dto;
 
-import com.hhplus.be.product.domain.StockStatus;
+import com.hhplus.be.product.domain.model.StockStatus;
 import com.hhplus.be.product.service.dto.ProductStockResult;
 
 /**

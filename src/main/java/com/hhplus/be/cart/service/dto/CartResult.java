@@ -1,7 +1,7 @@
 package com.hhplus.be.cart.service.dto;
 
-import com.hhplus.be.cart.domain.CartItem;
-import com.hhplus.be.product.domain.Product;
+import com.hhplus.be.cart.domain.model.CartItem;
+import com.hhplus.be.product.domain.model.Product;
 
 import java.util.List;
 
