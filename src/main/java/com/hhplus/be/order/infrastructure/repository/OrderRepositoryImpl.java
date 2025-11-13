@@ -29,8 +29,8 @@ public class OrderRepositoryImpl implements OrderRepository {
     }
 
     @Override
-    public List<Order> findByUserId(Long userId) {
-        return orderJpaRepository.findByUserId(userId).stream()
+    public List<Order> findByUserIdOrderByCreatedAtDesc(Long userId) {
+        return orderJpaRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(orderMapper::toDomain)
                 .toList();
     }
@@ -40,5 +40,10 @@ public class OrderRepositoryImpl implements OrderRepository {
         return orderJpaRepository.findAll().stream()
                 .map(orderMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public void deleteAll() {
+        orderJpaRepository.deleteAll();
     }
 }

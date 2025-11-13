@@ -36,5 +36,7 @@ public interface CartRepository {
      * 사용자의 모든 장바구니 아이템 삭제
      */
     void deleteAllByUserId(Long userId);
+
+    void deleteAll();
 }
 

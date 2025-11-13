@@ -50,4 +50,9 @@ public class OrderItemJpaImpl implements OrderItemRepository {
                         ProductSalesResult::getTotalQuantity
                 ));
     }
+
+    @Override
+    public void deleteAll() {
+        orderItemJpaRepository.deleteAll();
+    }
 }

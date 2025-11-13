@@ -11,4 +11,6 @@ public interface UserRepository {
 
     // 2. 저장: 사용자 업데이트
     User save(User user);
+
+    void deleteAll();
 }

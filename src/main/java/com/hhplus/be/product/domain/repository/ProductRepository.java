@@ -28,4 +28,6 @@ public interface ProductRepository {
      * 상품 저장 (생성/수정)
      */
     Product save(Product product);
+
+    void deleteAll();
 }

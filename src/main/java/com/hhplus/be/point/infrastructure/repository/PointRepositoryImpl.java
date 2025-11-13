@@ -33,4 +33,9 @@ public class PointRepositoryImpl implements PointRepository {
                 .map(pointMapper::toDomain)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public void deleteAll() {
+        pointJpaRepository.deleteAll();
+    }
 }

@@ -13,8 +13,10 @@ public interface OrderRepository {
     Optional<Order> findById(Long orderId);
 
     // 3. 사용자별 주문 목록 조회
-    List<Order> findByUserId(Long userId);
+    List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     // 4. 전체 주문 조회 (판매량 집계용)
     List<Order> findAll();
+
+    void deleteAll();
 }

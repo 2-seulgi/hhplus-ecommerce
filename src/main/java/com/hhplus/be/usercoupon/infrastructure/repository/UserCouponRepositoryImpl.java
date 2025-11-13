@@ -54,4 +54,9 @@ public class UserCouponRepositoryImpl implements UserCouponRepository {
                 .map(userCouponMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public void deleteAll() {
+        userCouponJpaRepository.deleteAll();
+    }
 }

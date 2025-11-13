@@ -40,4 +40,9 @@ public class ProductRepositoryImpl implements ProductRepository {
         var savedEntity = productJpaRepository.save(entity);
         return productMapper.toDomain(savedEntity);
     }
+
+    @Override
+    public void deleteAll() {
+        productJpaRepository.deleteAll();
+    }
 }

@@ -57,4 +57,9 @@ public class CartItemRepositoryImpl implements CartRepository {
         cartItemJpaRepository.deleteByUserId(userId);
     }
 
+    @Override
+    public void deleteAll() {
+        cartItemJpaRepository.deleteAll();
+    }
+
 }

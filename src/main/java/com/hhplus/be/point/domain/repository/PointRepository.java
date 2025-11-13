@@ -10,4 +10,5 @@ public interface PointRepository {
     // 2. 조회: 사용자 ID로 포인트 내역 모두 찾기 (최신순)
     List<Point> findByUserIdOrderByCreatedAtDesc(Long userId);
 
+    void deleteAll();
 }
