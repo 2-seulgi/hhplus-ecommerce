@@ -28,6 +28,11 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
+    // 새로운 사용자 생성 (ID는 DB에서 자동 생성)
+    public static User create(String name, String email, int initialBalance) {
+        return new User(name, email, initialBalance);
+    }
+
     // 초기 데이터용 (ID 포함)
     public static User create(Long id, String name, String email, int initialBalance) {
         User user = new User(name, email, initialBalance);

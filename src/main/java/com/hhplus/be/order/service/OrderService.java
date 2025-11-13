@@ -128,7 +128,7 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("존재하지 않는 회원"));
 
         // 2) 주문 목록 조회
-        List<Order> orders = orderRepository.findByUserId(query.userId());
+        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(query.userId());
 
         if (orders.isEmpty()) {
             return new OrderListResult(List.of());

@@ -1,11 +1,31 @@
 spring:
+  application:
+    name: ecommerce
+
   flyway:
     enabled: false
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # URL/ID/PW는 Testcontainers가 override 함
 
   jpa:
     hibernate:
       ddl-auto: create-drop
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+      hibernate.generate_statistics: true
 
 logging:
+  file:
+    name: build/slow-sql.log
+
   level:
-    org.hibernate.SQL: debug
+    # Hibernate SQL + 파라미터 로그
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+    # datasource-proxy slow query 로그
+    net.ttddyy.dsproxy: INFO
