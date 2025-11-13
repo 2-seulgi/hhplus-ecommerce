@@ -9,7 +9,13 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 @Entity
-@Table(name = "order_items")
+@Table(
+    name = "order_items",
+    indexes = {
+        // 인기 상품 조회 최적화: 커버링 인덱스 (테이블 접근 없이 인덱스만으로 조회)
+        @Index(name = "idx_order_item_covering", columnList = "orderId, productId, quantity")
+    }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
