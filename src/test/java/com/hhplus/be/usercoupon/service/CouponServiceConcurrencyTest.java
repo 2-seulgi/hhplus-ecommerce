@@ -4,6 +4,7 @@ import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.coupon.domain.model.Coupon;
 import com.hhplus.be.coupon.domain.model.DiscountType;
 import com.hhplus.be.coupon.domain.repository.CouponRepository;
+import com.hhplus.be.testsupport.IntegrationTestSupport;
 import com.hhplus.be.user.domain.model.User;
 import com.hhplus.be.user.domain.repository.UserRepository;
 import com.hhplus.be.usercoupon.domain.model.UserCoupon;
@@ -29,7 +30,7 @@ import static org.assertj.core.api.Assertions.*;
  * 선착순 쿠폰 발급의 Race Condition 검증
  */
 @SpringBootTest
-class CouponServiceConcurrencyTest {
+class CouponServiceConcurrencyTest extends IntegrationTestSupport {
 
     @Autowired
     private UserCouponService couponService;
