@@ -10,7 +10,16 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 @Entity
-@Table(name = "orders")
+@Table(
+    name = "orders",
+    indexes = {
+        // 인기 상품 조회 최적화: status + paid_at 복합 인덱스
+        @Index(name = "idx_order_status_paid", columnList = "status, paidAt"),
+
+        // 주문 목록 조회 최적화: user_id + created_at 복합 인덱스
+        @Index(name = "idx_order_user_created", columnList = "userId, createdAt")
+    }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
