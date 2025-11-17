@@ -11,37 +11,37 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class CouponRepositoryImpl implements com.hhplus.be.coupon.domain.repository.CouponRepository {
-    private final CouponRepository couponRepository;
+    private final CouponJpaRepository couponJpaRepository;
     private final CouponMapper couponMapper;
 
     @Override
     public Coupon save(Coupon coupon) {
         var entity = couponMapper.toEntity(coupon);
-        var savedEntity = couponRepository.save(entity);
+        var savedEntity = couponJpaRepository.save(entity);
         return couponMapper.toDomain(savedEntity);
     }
 
     @Override
     public Optional<Coupon> findById(Long id) {
-        return couponRepository.findById(id)
+        return couponJpaRepository.findById(id)
                 .map(couponMapper::toDomain);
     }
 
     @Override
     public Optional<Coupon> findByCode(String code) {
-        return couponRepository.findByCode(code)
+        return couponJpaRepository.findByCode(code)
                 .map(couponMapper::toDomain);
     }
 
     @Override
     public List<Coupon> findAll() {
-        return couponRepository.findAll().stream()
+        return couponJpaRepository.findAll().stream()
                 .map(couponMapper::toDomain)
                 .toList();
     }
 
     @Override
     public void deleteAll() {
-        couponRepository.deleteAll();
+        couponJpaRepository.deleteAll();
     }
 }

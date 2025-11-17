@@ -3,7 +3,7 @@ package com.hhplus.be.cart.infrastructure.repository;
 import com.hhplus.be.cart.domain.model.CartItem;
 import com.hhplus.be.cart.domain.repository.CartRepository;
 import com.hhplus.be.cart.infrastructure.mapper.CartItemMapper;
-import com.hhplus.be.user.infrastructure.repository.UserRepository;
+import com.hhplus.be.user.infrastructure.repository.UserJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -13,53 +13,53 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class CartItemRepositoryImpl implements CartRepository {
-    private final CartItemRepository cartItemRepository;
-    private final UserRepository userRepository;
+    private final CartItemJpaRepository cartItemJpaRepository;
+    private final UserJpaRepository userJpaRepository;
     private final CartItemMapper cartItemMapper;
 
     @Override
     public CartItem save(CartItem cartItem){
         var entity = cartItemMapper.toEntity(cartItem);
-        var savedEntity = cartItemRepository.save(entity);
+        var savedEntity = cartItemJpaRepository.save(entity);
         return cartItemMapper.toDomain(savedEntity);
     }
 
     @Override
     public List<CartItem> findByUserId(Long userId) {
-        return cartItemRepository.findByUserId(userId).stream()
+        return cartItemJpaRepository.findByUserId(userId).stream()
                 .map(cartItemMapper::toDomain)
                 .toList();
     }
 
     @Override
     public Optional<CartItem> findById(Long cartItemId) {
-        return cartItemRepository.findById(cartItemId)
+        return cartItemJpaRepository.findById(cartItemId)
                 .map(cartItemMapper::toDomain);
     }
 
     @Override
     public Optional<CartItem> findByUserIdAndProductId(Long userId, Long productId) {
-        return cartItemRepository.findByUserIdAndProductId(userId, productId)
+        return cartItemJpaRepository.findByUserIdAndProductId(userId, productId)
                 .map(cartItemMapper::toDomain);
     }
 
     @Override
     public void delete(CartItem cartItem) {
         if (cartItem.getId() != null) {
-            cartItemRepository.deleteById(cartItem.getId());
+            cartItemJpaRepository.deleteById(cartItem.getId());
         } else {
-            cartItemRepository.delete(cartItemMapper.toEntity(cartItem));
+            cartItemJpaRepository.delete(cartItemMapper.toEntity(cartItem));
         }
     }
 
     @Override
     public void deleteAllByUserId(Long userId) {
-        cartItemRepository.deleteByUserId(userId);
+        cartItemJpaRepository.deleteByUserId(userId);
     }
 
     @Override
     public void deleteAll() {
-        cartItemRepository.deleteAll();
+        cartItemJpaRepository.deleteAll();
     }
 
 }

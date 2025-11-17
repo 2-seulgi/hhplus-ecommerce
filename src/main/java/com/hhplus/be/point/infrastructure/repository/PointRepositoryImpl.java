@@ -16,25 +16,25 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PointRepositoryImpl implements com.hhplus.be.point.domain.repository.PointRepository {
 
-    private final PointRepository pointRepository;
+    private final PointJpaRepository pointJpaRepository;
     private final PointMapper pointMapper;
 
     @Override
     public Point save(Point point) {
         var entity = pointMapper.toEntity(point);
-        var savedEntity = pointRepository.save(entity);
+        var savedEntity = pointJpaRepository.save(entity);
         return pointMapper.toDomain(savedEntity);
     }
 
     @Override
     public List<Point> findByUserIdOrderByCreatedAtDesc(Long userId) {
-        return pointRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+        return pointJpaRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(pointMapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
     public void deleteAll() {
-        pointRepository.deleteAll();
+        pointJpaRepository.deleteAll();
     }
 }

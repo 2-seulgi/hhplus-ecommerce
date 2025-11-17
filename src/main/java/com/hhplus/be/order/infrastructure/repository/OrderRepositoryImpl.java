@@ -11,38 +11,38 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class OrderRepositoryImpl implements com.hhplus.be.order.domain.repository.OrderRepository {
-    private final OrderRepository orderRepository;
+    private final OrderJpaRepository orderJpaRepository;
     private final OrderMapper orderMapper;
 
     @Override
     public Order save(Order order) {
         var entity = orderMapper.toEntity(order);
-        var savedEntity = orderRepository.save(entity);
+        var savedEntity = orderJpaRepository.save(entity);
         return orderMapper.toDomain(savedEntity);
     }
 
     @Override
     public Optional<Order> findById(Long orderId) {
-        return orderRepository.findById(orderId)
+        return orderJpaRepository.findById(orderId)
                 .map(orderMapper::toDomain);
     }
 
     @Override
     public List<Order> findByUserIdOrderByCreatedAtDesc(Long userId) {
-        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+        return orderJpaRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(orderMapper::toDomain)
                 .toList();
     }
 
     @Override
     public List<Order> findAll() {
-        return orderRepository.findAll().stream()
+        return orderJpaRepository.findAll().stream()
                 .map(orderMapper::toDomain)
                 .toList();
     }
 
     @Override
     public void deleteAll() {
-        orderRepository.deleteAll();
+        orderJpaRepository.deleteAll();
     }
 }

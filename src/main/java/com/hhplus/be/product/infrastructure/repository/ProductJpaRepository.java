@@ -7,6 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * 상품 JPA Repository (Infrastructure Layer)
  * Spring Data JPA가 자동 구현
  */
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductJpaRepository extends JpaRepository<Product, Long> {
 
 }

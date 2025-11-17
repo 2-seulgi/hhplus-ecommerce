@@ -49,9 +49,9 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
 
-    implementation 'com.github.gavlyukovskiy:datasource-proxy-spring-boot-starter:1.9.0'
-
-
+    // ✅ 쿼리 로깅용
+    implementation "com.github.gavlyukovskiy:datasource-proxy-spring-boot-starter:1.9.0"
+    implementation "com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0"
 }
 
 tasks.named('test') {

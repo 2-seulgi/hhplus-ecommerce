@@ -16,17 +16,10 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate.format_sql: true
-      hibernate.generate_statistics: true  # 성능 통계
-
-# Datasource Proxy 설정 (테스트용 쿼리 로깅)
-decorator:
-  datasource:
-    p6spy:
-      enable-logging: true
-      multiline: true
-      logging: slf4j
+      hibernate.generate_statistics: false  # 성능 통계
 
 logging:
   level:
-    # Datasource Proxy 쿼리 로그
-    net.ttddyy.dsproxy.listener: DEBUG
+    p6spy: DEBUG
+    org.hibernate.stat: OFF
+
