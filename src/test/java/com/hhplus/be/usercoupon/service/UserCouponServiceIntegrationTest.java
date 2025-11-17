@@ -30,9 +30,6 @@ import static org.assertj.core.api.Assertions.*;
  * - N+1 문제: 각 UserCoupon마다 Coupon 정보 개별 조회
  * - 애플리케이션 레벨 필터링
  */
-
-@SpringBootTest
-@ActiveProfiles("test")
 class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
 
     @Autowired

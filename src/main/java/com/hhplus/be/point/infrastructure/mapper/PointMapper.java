@@ -1,17 +1,16 @@
 package com.hhplus.be.point.infrastructure.mapper;
 
-import com.hhplus.be.point.domain.model.Point;
-import com.hhplus.be.point.infrastructure.entity.PointJpaEntity;
+import com.hhplus.be.point.infrastructure.entity.Point;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PointMapper {
 
-    public Point toDomain(PointJpaEntity entity) {
+    public com.hhplus.be.point.domain.model.Point toDomain(Point entity) {
         if (entity == null) {
             return null;
         }
-        return Point.reconstruct(
+        return com.hhplus.be.point.domain.model.Point.reconstruct(
                 entity.getId(),
                 entity.getUserId(),
                 entity.getPointType(),
@@ -21,11 +20,11 @@ public class PointMapper {
         );
     }
 
-    public PointJpaEntity toEntity(Point domain) {
+    public Point toEntity(com.hhplus.be.point.domain.model.Point domain) {
         if (domain == null) {
             return null;
         }
-        return new PointJpaEntity(
+        return new Point(
                 domain.getUserId(),
                 domain.getPointType(),
                 domain.getAmount(),

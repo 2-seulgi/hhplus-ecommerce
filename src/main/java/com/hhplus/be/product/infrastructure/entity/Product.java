@@ -1,4 +1,4 @@
-package com.hhplus.be.user.infrastructure.entity;
+package com.hhplus.be.product.infrastructure.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -8,25 +8,32 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+/**
+ * 상품 JPA Entity (Infrastructure Layer)
+ * DB 테이블과 매핑되는 영속성 객체
+ */
 @Entity
-@Table(name = "users")
+@Table(name = "product")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class UserJpaEntity {
+public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 200)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(nullable = false)
-    private int balance;
+    private int price;
+
+    @Column(nullable = false)
+    private int stock;
 
     @Version
     private int version;
@@ -47,5 +54,4 @@ public class UserJpaEntity {
     protected void onUpdate() {
         this.updatedAt = Instant.now();
     }
-
 }

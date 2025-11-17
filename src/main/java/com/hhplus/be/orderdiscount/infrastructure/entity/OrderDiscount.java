@@ -14,7 +14,7 @@ import java.time.Instant;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class OrderDiscountJpaEntity {
+public class OrderDiscount {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

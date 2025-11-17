@@ -1,16 +1,15 @@
 package com.hhplus.be.coupon.infrastructure.mapper;
 
-import com.hhplus.be.coupon.domain.model.Coupon;
-import com.hhplus.be.coupon.infrastructure.entity.CouponJpaEntity;
+import com.hhplus.be.coupon.infrastructure.entity.Coupon;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CouponMapper {
-    public Coupon toDomain(CouponJpaEntity entity) {
+    public com.hhplus.be.coupon.domain.model.Coupon toDomain(Coupon entity) {
         if (entity == null) {
             return null;
         }
-        return Coupon.reconstruct(
+        return com.hhplus.be.coupon.domain.model.Coupon.reconstruct(
                 entity.getId(),
                 entity.getCode(),
                 entity.getName(),
@@ -28,11 +27,11 @@ public class CouponMapper {
         );
     }
 
-    public CouponJpaEntity toEntity(Coupon domain) {
+    public Coupon toEntity(com.hhplus.be.coupon.domain.model.Coupon domain) {
         if (domain == null) {
             return null;
         }
-        return new CouponJpaEntity(
+        return new Coupon(
                 domain.getId(),
                 domain.getCode(),
                 domain.getName(),

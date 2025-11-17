@@ -14,7 +14,7 @@ import java.time.Instant;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class PointJpaEntity {
+public class Point {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,7 +37,7 @@ public class PointJpaEntity {
     private Instant createdAt;
 
     // Mapper용 생성자 (id 없음)
-    public PointJpaEntity(Long userId, PointType pointType, int amount, int balanceAfter, Instant createdAt) {
+    public Point(Long userId, PointType pointType, int amount, int balanceAfter, Instant createdAt) {
         this.userId = userId;
         this.pointType = pointType;
         this.amount = amount;

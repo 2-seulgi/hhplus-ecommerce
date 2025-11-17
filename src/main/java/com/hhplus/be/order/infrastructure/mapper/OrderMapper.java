@@ -1,17 +1,16 @@
 package com.hhplus.be.order.infrastructure.mapper;
 
-import com.hhplus.be.order.domain.model.Order;
-import com.hhplus.be.order.infrastructure.entity.OrderJpaEntity;
+import com.hhplus.be.order.infrastructure.entity.Order;
 import org.springframework.stereotype.Component;
 
 @Component
 public class OrderMapper {
 
-    public Order toDomain(OrderJpaEntity entity) {
+    public com.hhplus.be.order.domain.model.Order toDomain(Order entity) {
         if (entity == null) {
             return null;
         }
-        return Order.reconstruct(
+        return com.hhplus.be.order.domain.model.Order.reconstruct(
                 entity.getId(),
                 entity.getUserId(),
                 entity.getStatus(),
@@ -26,11 +25,11 @@ public class OrderMapper {
         );
     }
 
-    public OrderJpaEntity toEntity(Order domain) {
+    public Order toEntity(com.hhplus.be.order.domain.model.Order domain) {
         if (domain == null) {
             return null;
         }
-        return new OrderJpaEntity(
+        return new Order(
                 domain.getId(),
                 domain.getUserId(),
                 domain.getStatus(),

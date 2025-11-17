@@ -32,8 +32,6 @@ import static org.assertj.core.api.Assertions.*;
  *
  * - 인기 상품 조회: ORDER_ITEMS와 ORDERS 테이블 JOIN 후 집계 쿼리 성능
  */
-@SpringBootTest
-@ActiveProfiles("test")
 class ProductServiceIntegrationTest extends IntegrationTestSupport {
 
     @Autowired

@@ -1,16 +1,15 @@
 package com.hhplus.be.orderitem.infrastructure.mapper;
 
-import com.hhplus.be.orderitem.domain.model.OrderItem;
-import com.hhplus.be.orderitem.infrastructure.entity.OrderItemJpaEntity;
+import com.hhplus.be.orderitem.infrastructure.entity.OrderItem;
 import org.springframework.stereotype.Component;
 
 @Component
 public class OrderItemMapper {
-    public OrderItem toDomain(OrderItemJpaEntity entity) {
+    public com.hhplus.be.orderitem.domain.model.OrderItem toDomain(OrderItem entity) {
         if (entity == null) {
             return null;
         }
-        return OrderItem.reconstruct(
+        return com.hhplus.be.orderitem.domain.model.OrderItem.reconstruct(
                 entity.getId(),
                 entity.getOrderId(),
                 entity.getProductId(),
@@ -21,11 +20,11 @@ public class OrderItemMapper {
         );
     }
 
-    public OrderItemJpaEntity toEntity(OrderItem domain) {
+    public OrderItem toEntity(com.hhplus.be.orderitem.domain.model.OrderItem domain) {
         if (domain == null) {
             return null;
         }
-        return new OrderItemJpaEntity(
+        return new OrderItem(
                 domain.getId(),
                 domain.getOrderId(),
                 domain.getProductId(),
