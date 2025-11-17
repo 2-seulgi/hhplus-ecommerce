@@ -10,19 +10,19 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor
 public class OrderDiscountRepositoryImpl implements com.hhplus.be.orderdiscount.domain.repository.OrderDiscountRepository {
-    private final OrderDiscountRepository orderDiscountRepository;
+    private final OrderDiscountJpaRepository orderDiscountJpaRepository;
     private final OrderDiscountMapper orderDiscountMapper;
 
     @Override
     public OrderDiscount save(OrderDiscount orderDiscount) {
         var entity = orderDiscountMapper.toEntity(orderDiscount);
-        var savedEntity = orderDiscountRepository.save(entity);
+        var savedEntity = orderDiscountJpaRepository.save(entity);
         return orderDiscountMapper.toDomain(savedEntity);
     }
 
     @Override
     public List<OrderDiscount> findByOrderId(Long orderId) {
-        return orderDiscountRepository.findByOrderId(orderId).stream()
+        return orderDiscountJpaRepository.findByOrderId(orderId).stream()
                 .map(orderDiscountMapper::toDomain)
                 .toList();
     }

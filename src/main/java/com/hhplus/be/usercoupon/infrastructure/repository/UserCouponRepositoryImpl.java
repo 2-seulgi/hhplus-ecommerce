@@ -11,51 +11,51 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class UserCouponRepositoryImpl implements com.hhplus.be.usercoupon.domain.repository.UserCouponRepository {
-    private final UserCouponRepository userCouponRepository;
+    private final UserCouponJpaRepository userCouponJpaRepository;
     private final UserCouponMapper userCouponMapper;
 
     @Override
     public UserCoupon save(UserCoupon userCoupon) {
         var entity = userCouponMapper.toEntity(userCoupon);
-        var savedEntity = userCouponRepository.save(entity);
+        var savedEntity = userCouponJpaRepository.save(entity);
         return userCouponMapper.toDomain(savedEntity);
     }
 
     @Override
     public Optional<UserCoupon> findById(Long id) {
-        return userCouponRepository.findById(id)
+        return userCouponJpaRepository.findById(id)
                 .map(userCouponMapper::toDomain);
     }
 
     @Override
     public List<UserCoupon> findByUserId(Long userId) {
-        return userCouponRepository.findByUserId(userId).stream()
+        return userCouponJpaRepository.findByUserId(userId).stream()
                 .map(userCouponMapper::toDomain)
                 .toList();
     }
 
     @Override
     public List<UserCoupon> findByUserIdAndUsed(Long userId, boolean used) {
-        return userCouponRepository.findByUserIdAndUsed(userId, used).stream()
+        return userCouponJpaRepository.findByUserIdAndUsed(userId, used).stream()
                 .map(userCouponMapper::toDomain)
                 .toList();
     }
 
     @Override
     public Optional<UserCoupon> findByUserIdAndCouponId(Long userId, Long couponId) {
-        return userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+        return userCouponJpaRepository.findByUserIdAndCouponId(userId, couponId)
                 .map(userCouponMapper::toDomain);
     }
 
     @Override
     public List<UserCoupon> findAll() {
-        return userCouponRepository.findAll().stream()
+        return userCouponJpaRepository.findAll().stream()
                 .map(userCouponMapper::toDomain)
                 .toList();
     }
 
     @Override
     public void deleteAll() {
-        userCouponRepository.deleteAll();
+        userCouponJpaRepository.deleteAll();
     }
 }

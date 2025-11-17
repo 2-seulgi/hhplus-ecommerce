@@ -10,25 +10,14 @@ spring:
     open-in-view: false
     show-sql: false  # datasource-proxy가 대신 찍으므로 false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update  # Flyway 제거하고 JPA로 스키마 관리
     properties:
       hibernate.format_sql: true
       hibernate.dialect: org.hibernate.dialect.MySQLDialect
 
   flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-
-# Datasource Proxy 설정 (쿼리 로깅)
-decorator:
-  datasource:
-    p6spy:
-      enable-logging: true
-      multiline: true
-      logging: slf4j
+    enabled: false  # Flyway 비활성화
 
 logging:
   level:
-    # Datasource Proxy 쿼리 로그
-    net.ttddyy.dsproxy.listener: DEBUG
+    p6spy: DEBUG

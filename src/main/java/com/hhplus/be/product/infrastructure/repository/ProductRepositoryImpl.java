@@ -17,18 +17,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductRepositoryImpl implements com.hhplus.be.product.domain.repository.ProductRepository {
 
-    private final ProductRepository productRepository;
+    private final ProductJpaRepository productJpaRepository;
     private final ProductMapper productMapper;
 
     @Override
     public Optional<Product> findById(Long productId) {
-        return productRepository.findById(productId)
+        return productJpaRepository.findById(productId)
                 .map(productMapper::toDomain);
     }
 
     @Override
     public List<Product> findAll() {
-        return productRepository.findAll().stream()
+        return productJpaRepository.findAll().stream()
                 .map(productMapper::toDomain)
                 .collect(Collectors.toList());
     }
@@ -36,12 +36,12 @@ public class ProductRepositoryImpl implements com.hhplus.be.product.domain.repos
     @Override
     public Product save(Product product) {
         var entity = productMapper.toEntity(product);
-        var savedEntity = productRepository.save(entity);
+        var savedEntity = productJpaRepository.save(entity);
         return productMapper.toDomain(savedEntity);
     }
 
     @Override
     public void deleteAll() {
-        productRepository.deleteAll();
+        productJpaRepository.deleteAll();
     }
 }

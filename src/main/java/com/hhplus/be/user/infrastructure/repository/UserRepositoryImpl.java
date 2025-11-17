@@ -10,25 +10,25 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class UserRepositoryImpl implements com.hhplus.be.user.domain.repository.UserRepository {
-    private final UserRepository userRepository;
+    private final UserJpaRepository userJpaRepository;
     private final UserMapper userMapper;
 
     @Override
     public Optional<User> findById(Long id) {
-        return userRepository.findById(id)
+        return userJpaRepository.findById(id)
                 .map(userMapper::toDomain);
     }
 
     @Override
     public User save(User user) {
         var entity = userMapper.toEntity(user);
-        var savedEntity = userRepository.save(entity);
+        var savedEntity = userJpaRepository.save(entity);
         return userMapper.toDomain(savedEntity);
     }
 
     @Override
     public void deleteAll() {
-        userRepository.deleteAll();
+        userJpaRepository.deleteAll();
     }
 
 }

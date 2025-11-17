@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.List;
 
-public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
+public interface OrderItemJpaRepository extends JpaRepository<OrderItem, Long> {
 
     List<OrderItem> findByOrderId(Long orderId);
 
@@ -20,7 +20,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             SUM(oi.quantity)
         )
         FROM OrderItem oi
-        JOIN com.hhplus.be.order.infrastructure.entity.OrderJpaEntity o ON oi.orderId = o.id
+        JOIN com.hhplus.be.order.infrastructure.entity.Order o ON oi.orderId = o.id
         WHERE o.status = 'CONFIRMED'
         AND o.paidAt >= :since
         GROUP BY oi.productId

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 @Repository
 @RequiredArgsConstructor
 public class OrderItemImpl implements com.hhplus.be.orderitem.domain.repository.OrderItemRepository {
-    private final OrderItemRepository orderItemRepository;
+    private final OrderItemJpaRepository orderItemJpaRepository;
     private final OrderItemMapper orderItemMapper;
 
     @Override
@@ -21,7 +21,7 @@ public class OrderItemImpl implements com.hhplus.be.orderitem.domain.repository.
         var jpaEntities = orderItems.stream()
                 .map(orderItemMapper::toEntity)
                 .toList();
-        var savedEntities = orderItemRepository.saveAll(jpaEntities);
+        var savedEntities = orderItemJpaRepository.saveAll(jpaEntities);
         return savedEntities.stream()
                 .map(orderItemMapper::toDomain)
                 .toList();
@@ -29,21 +29,21 @@ public class OrderItemImpl implements com.hhplus.be.orderitem.domain.repository.
 
     @Override
     public List<OrderItem> findByOrderId(Long orderId) {
-        return orderItemRepository.findByOrderId(orderId).stream()
+        return orderItemJpaRepository.findByOrderId(orderId).stream()
                 .map(orderItemMapper::toDomain)
                 .toList();
     }
 
     @Override
     public List<OrderItem> findByOrderIdIn(List<Long> orderIds) {
-        return orderItemRepository.findByOrderIdIn(orderIds).stream()
+        return orderItemJpaRepository.findByOrderIdIn(orderIds).stream()
                 .map(orderItemMapper::toDomain)
                 .toList();
     }
 
     @Override
     public Map<Long, Integer> countSalesByProductSince(Instant since) {
-        return orderItemRepository.countSalesByProductSince(since).stream()
+        return orderItemJpaRepository.countSalesByProductSince(since).stream()
                 .collect(Collectors.toMap(
                         ProductSalesResult::productId,
                         ProductSalesResult::getTotalQuantity
@@ -52,6 +52,6 @@ public class OrderItemImpl implements com.hhplus.be.orderitem.domain.repository.
 
     @Override
     public void deleteAll() {
-        orderItemRepository.deleteAll();
+        orderItemJpaRepository.deleteAll();
     }
 }
