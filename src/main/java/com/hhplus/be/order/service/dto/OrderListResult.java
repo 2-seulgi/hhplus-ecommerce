@@ -1,13 +1,12 @@
 package com.hhplus.be.order.service.dto;
 
-import com.hhplus.be.order.domain.Order;
-import com.hhplus.be.order.domain.OrderStatus;
-import com.hhplus.be.orderitem.domain.OrderItem;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public record OrderListResult(
         List<OrderSummary> orders

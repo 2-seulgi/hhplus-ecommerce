@@ -2,11 +2,11 @@ package com.hhplus.be.point.service;
 
 import com.hhplus.be.point.service.dto.*;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.domain.PointType;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.point.infrastructure.PointRepository;
-import com.hhplus.be.user.infrastructure.UserRepository;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.model.PointType;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.point.domain.repository.PointRepository;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +37,7 @@ class PointServiceTest {
     @DisplayName("포인트 충전 성공 - 잔액과 히스토리 기록이 모두 반영된다")
     void chargePoint() {
         // given
-        User user = User.createWithId(1L, "홍길동", "hong@example.com", 10000);
+        User user = User.create(1L, "홍길동", "hong@example.com", 10000);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         // when
@@ -135,7 +135,7 @@ class PointServiceTest {
     @DisplayName("포인트 잔액 조회 성공")
     void getBalance() {
         // given
-        User user = User.createWithId(1L, "홍길동", "hong@example.com", 50000);
+        User user = User.create(1L, "홍길동", "hong@example.com", 50000);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         // when

@@ -1,14 +1,14 @@
 package com.hhplus.be.order.service;
 
-import com.hhplus.be.cart.domain.CartItem;
-import com.hhplus.be.cart.infrastructure.CartRepository;
+import com.hhplus.be.cart.domain.model.CartItem;
+import com.hhplus.be.cart.domain.repository.CartRepository;
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.InvalidInputException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 
-import com.hhplus.be.order.domain.Order;
-import com.hhplus.be.order.domain.OrderStatus;
-import com.hhplus.be.order.infrastructure.OrderRepository;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
+import com.hhplus.be.order.domain.repository.OrderRepository;
 import com.hhplus.be.order.service.dto.CreateOrderResult;
 import com.hhplus.be.order.service.dto.OrderDetailQuery;
 import com.hhplus.be.order.service.dto.OrderDetailResult;
@@ -17,16 +17,16 @@ import com.hhplus.be.order.service.dto.OrderListResult;
 import com.hhplus.be.order.service.dto.RefundCommand;
 import com.hhplus.be.order.service.dto.RefundResult;
 import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
-import com.hhplus.be.orderitem.domain.OrderItem;
-import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.infrastructure.PointRepository;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.user.infrastructure.UserRepository;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
+import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.repository.PointRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import com.hhplus.be.orderdiscount.domain.OrderDiscount;
-import com.hhplus.be.orderdiscount.infrastructure.OrderDiscountRepository;
+import com.hhplus.be.orderdiscount.domain.repository.OrderDiscountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,7 +102,7 @@ public class OrderService {
         List<OrderItem> items = lines.stream()
                 .map(l -> OrderItem.create(
                         saved.getId(),
-                        l.p().getProduct_id(),
+                        l.p().getId(),
                         l.p().getName(),
                         l.p().getPrice(), // 스냅샷 단가
                         l.qty()
@@ -128,7 +128,7 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("존재하지 않는 회원"));
 
         // 2) 주문 목록 조회
-        List<Order> orders = orderRepository.findByUserId(query.userId());
+        List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(query.userId());
 
         if (orders.isEmpty()) {
             return new OrderListResult(List.of());

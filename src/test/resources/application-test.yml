@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: ecommerce
+
+  flyway:
+    enabled: false  # 테스트에서는 JPA DDL로 스키마 생성
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # URL/ID/PW는 Testcontainers가 override
+
+  jpa:
+    open-in-view: false
+    show-sql: false  # datasource-proxy가 대신 찍으므로 false
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate.format_sql: true
+      hibernate.generate_statistics: false  # 성능 통계
+
+logging:
+  level:
+    p6spy: DEBUG
+    org.hibernate.stat: OFF
+

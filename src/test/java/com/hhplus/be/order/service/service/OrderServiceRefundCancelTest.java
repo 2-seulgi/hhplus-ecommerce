@@ -2,25 +2,21 @@ package com.hhplus.be.order.service.service;
 
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.order.domain.Order;
-import com.hhplus.be.order.domain.OrderStatus;
-import com.hhplus.be.order.infrastructure.OrderRepository;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
+import com.hhplus.be.order.domain.repository.OrderRepository;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.RefundCommand;
 import com.hhplus.be.order.service.dto.RefundResult;
-import com.hhplus.be.coupon.infrastructure.CouponRepository;
-import com.hhplus.be.cart.infrastructure.CartRepository;
-import com.hhplus.be.orderdiscount.infrastructure.OrderDiscountRepository;
-import com.hhplus.be.orderitem.domain.OrderItem;
-import com.hhplus.be.orderitem.infrastructure.OrderItemRepository;
-import com.hhplus.be.point.domain.Point;
-import com.hhplus.be.point.domain.PointType;
-import com.hhplus.be.point.infrastructure.PointRepository;
-import com.hhplus.be.product.domain.Product;
-import com.hhplus.be.product.infrastructure.ProductRepository;
-import com.hhplus.be.user.domain.User;
-import com.hhplus.be.user.infrastructure.UserRepository;
-import com.hhplus.be.usercoupon.infrastructure.UserCouponRepository;
+import com.hhplus.be.orderitem.domain.model.OrderItem;
+import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.model.PointType;
+import com.hhplus.be.point.domain.repository.PointRepository;
+import com.hhplus.be.product.domain.model.Product;
+import com.hhplus.be.product.domain.repository.ProductRepository;
+import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -70,7 +65,7 @@ class OrderServiceRefundCancelTest {
 
         // CONFIRMED 상태 주문
         Order confirmedOrder = Order.create(userId, finalAmount, fixedNow.plusSeconds(1800));
-        confirmedOrder.assignId(orderId);
+        assignOrderId(confirmedOrder, orderId);
         confirmedOrder.confirm(finalAmount, fixedNow.minusSeconds(600)); // 10분 전 결제됨
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
 
@@ -82,16 +77,14 @@ class OrderServiceRefundCancelTest {
         when(orderItemRepository.findByOrderId(orderId)).thenReturn(orderItems);
 
         // 사용자 (현재 잔액 50000원)
-        User user = User.createWithId(userId, "홍길동", "hong@test.com", 50000);
+        User user = User.create(userId, "홍길동", "hong@test.com", 50000);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         // 상품들 (재고 복구용)
         Product product1 = Product.create("상품A", "설명A", 10000, 10);
-        product1.assignId(1L);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product1));
 
         Product product2 = Product.create("상품B", "설명B", 10000, 5);
-        product2.assignId(2L);
         when(productRepository.findById(2L)).thenReturn(Optional.of(product2));
 
         // 포인트 히스토리 저장
@@ -153,7 +146,7 @@ class OrderServiceRefundCancelTest {
         Long otherUserId = 2L;
 
         Order order = Order.create(otherUserId, 30000, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
         // When & Then
@@ -172,7 +165,7 @@ class OrderServiceRefundCancelTest {
 
         // REFUNDED 상태 주문 (이미 환불됨)
         Order refundedOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        refundedOrder.assignId(orderId);
+        assignOrderId(refundedOrder, orderId);
         refundedOrder.confirm(30000, fixedNow.minusSeconds(1200)); // 결제 완료
         refundedOrder.refund(fixedNow.minusSeconds(600)); // 환불 완료
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(refundedOrder));
@@ -182,11 +175,10 @@ class OrderServiceRefundCancelTest {
         );
         when(orderItemRepository.findByOrderId(orderId)).thenReturn(orderItems);
 
-        User user = User.createWithId(userId, "홍길동", "hong@test.com", 50000);
+        User user = User.create(userId, "홍길동", "hong@test.com", 50000);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         Product product = Product.create("상품", "설명", 30000, 10);
-        product.assignId(1L);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
         // When & Then
@@ -205,7 +197,7 @@ class OrderServiceRefundCancelTest {
 
         // PENDING 상태 주문
         Order pendingOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        pendingOrder.assignId(orderId);
+        assignOrderId(pendingOrder, orderId);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(pendingOrder));
 
         // When
@@ -238,7 +230,7 @@ class OrderServiceRefundCancelTest {
         Long otherUserId = 2L;
 
         Order order = Order.create(otherUserId, 30000, fixedNow.plusSeconds(1800));
-        order.assignId(orderId);
+        assignOrderId(order, orderId);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
         // When & Then
@@ -256,7 +248,7 @@ class OrderServiceRefundCancelTest {
 
         // CONFIRMED 상태 주문 (이미 결제됨)
         Order confirmedOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        confirmedOrder.assignId(orderId);
+        assignOrderId(confirmedOrder, orderId);
         confirmedOrder.confirm(30000, fixedNow.minusSeconds(600));
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(confirmedOrder));
 
@@ -275,7 +267,7 @@ class OrderServiceRefundCancelTest {
 
         // REFUNDED 상태 주문
         Order refundedOrder = Order.create(userId, 30000, fixedNow.plusSeconds(1800));
-        refundedOrder.assignId(orderId);
+        assignOrderId(refundedOrder, orderId);
         refundedOrder.confirm(30000, fixedNow.minusSeconds(600));
         refundedOrder.refund(fixedNow.minusSeconds(300));
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(refundedOrder));
@@ -290,7 +282,28 @@ class OrderServiceRefundCancelTest {
     private OrderItem createOrderItem(Long id, Long orderId, Long productId,
                                       String productName, int unitPrice, int quantity) {
         OrderItem item = OrderItem.create(orderId, productId, productName, unitPrice, quantity);
-        item.assignId(id);
+        assignOrderItemId(item, id);
         return item;
+    }
+
+    // Helper methods for ID assignment
+    private void assignOrderId(Order order, Long id) {
+        try {
+            var field = Order.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(order, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 할당 실패", e);
+        }
+    }
+
+    private void assignOrderItemId(OrderItem item, Long id) {
+        try {
+            var field = OrderItem.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(item, id);
+        } catch (Exception e) {
+            throw new RuntimeException("ID 할당 실패", e);
+        }
     }
 }

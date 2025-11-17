@@ -1,8 +1,8 @@
 package com.hhplus.be.order.service.dto;
 
-import com.hhplus.be.order.domain.Order;
-import com.hhplus.be.order.domain.OrderStatus;
-import com.hhplus.be.user.domain.User;
+import com.hhplus.be.order.domain.model.Order;
+import com.hhplus.be.order.domain.model.OrderStatus;
+import com.hhplus.be.user.domain.model.User;
 
 import java.time.Instant;
 
