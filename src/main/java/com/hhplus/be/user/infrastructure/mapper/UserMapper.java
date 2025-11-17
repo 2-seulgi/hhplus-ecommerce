@@ -1,19 +1,16 @@
 package com.hhplus.be.user.infrastructure.mapper;
 
-import com.hhplus.be.product.domain.model.Product;
-import com.hhplus.be.product.infrastructure.entity.ProductJpaEntity;
-import com.hhplus.be.user.domain.model.User;
-import com.hhplus.be.user.infrastructure.entity.UserJpaEntity;
+import com.hhplus.be.user.infrastructure.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component
 public class UserMapper {
 
-    public User toDomain(UserJpaEntity entity) {
+    public com.hhplus.be.user.domain.model.User toDomain(User entity) {
         if (entity == null) {
             return null;
         }
-        return User.reconstruct(
+        return com.hhplus.be.user.domain.model.User.reconstruct(
                 entity.getId(),
                 entity.getName(),
                 entity.getEmail(),
@@ -27,11 +24,11 @@ public class UserMapper {
     /**
      * Domain Model → JPA Entity
      */
-    public UserJpaEntity toEntity(User domain) {
+    public User toEntity(com.hhplus.be.user.domain.model.User domain) {
         if (domain == null) {
             return null;
         }
-        return new UserJpaEntity(
+        return new User(
                 domain.getId(),
                 domain.getName(),
                 domain.getEmail(),

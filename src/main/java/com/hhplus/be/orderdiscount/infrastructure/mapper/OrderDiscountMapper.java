@@ -1,16 +1,15 @@
 package com.hhplus.be.orderdiscount.infrastructure.mapper;
 
-import com.hhplus.be.orderdiscount.domain.OrderDiscount;
-import com.hhplus.be.orderdiscount.infrastructure.entity.OrderDiscountJpaEntity;
+import com.hhplus.be.orderdiscount.infrastructure.entity.OrderDiscount;
 import org.springframework.stereotype.Component;
 
 @Component
 public class OrderDiscountMapper {
-    public OrderDiscount toDomain(OrderDiscountJpaEntity entity) {
+    public com.hhplus.be.orderdiscount.domain.OrderDiscount toDomain(OrderDiscount entity) {
         if (entity == null) {
             return null;
         }
-        return OrderDiscount.reconstruct(
+        return com.hhplus.be.orderdiscount.domain.OrderDiscount.reconstruct(
                 entity.getId(),
                 entity.getOrderId(),
                 entity.getUserCouponId(),
@@ -21,11 +20,11 @@ public class OrderDiscountMapper {
         );
     }
 
-    public OrderDiscountJpaEntity toEntity(OrderDiscount domain) {
+    public OrderDiscount toEntity(com.hhplus.be.orderdiscount.domain.OrderDiscount domain) {
         if (domain == null) {
             return null;
         }
-        return new OrderDiscountJpaEntity(
+        return new OrderDiscount(
                 domain.getId(),
                 domain.getOrderId(),
                 domain.getUserCouponId(),

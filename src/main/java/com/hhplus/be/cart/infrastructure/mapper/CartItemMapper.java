@@ -1,17 +1,16 @@
 package com.hhplus.be.cart.infrastructure.mapper;
 
-import com.hhplus.be.cart.domain.model.CartItem;
-import com.hhplus.be.cart.infrastructure.entity.CartItemJpaEntity;
+import com.hhplus.be.cart.infrastructure.entity.CartItem;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CartItemMapper {
 
-    public CartItem toDomain(CartItemJpaEntity entity) {
+    public com.hhplus.be.cart.domain.model.CartItem toDomain(CartItem entity) {
         if (entity == null) {
             return null;
         }
-        return CartItem.reconstruct(
+        return com.hhplus.be.cart.domain.model.CartItem.reconstruct(
                 entity.getId(),
                 entity.getUserId(),
                 entity.getProductId(),
@@ -21,11 +20,11 @@ public class CartItemMapper {
         );
     }
 
-    public CartItemJpaEntity toEntity(CartItem domain) {
+    public CartItem toEntity(com.hhplus.be.cart.domain.model.CartItem domain) {
         if (domain == null) {
             return null;
         }
-        return new CartItemJpaEntity(
+        return new CartItem(
                 domain.getId(),
                 domain.getUserId(),
                 domain.getProductId(),

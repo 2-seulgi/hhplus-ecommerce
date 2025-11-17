@@ -1,7 +1,6 @@
 package com.hhplus.be.orderitem.infrastructure.repository;
 
 import com.hhplus.be.orderitem.domain.model.OrderItem;
-import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.orderitem.infrastructure.mapper.OrderItemMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -13,8 +12,8 @@ import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
-public class OrderItemJpaImpl implements OrderItemRepository {
-    private final OrderItemJpaRepository orderItemJpaRepository;
+public class OrderItemImpl implements com.hhplus.be.orderitem.domain.repository.OrderItemRepository {
+    private final OrderItemRepository orderItemRepository;
     private final OrderItemMapper orderItemMapper;
 
     @Override
@@ -22,7 +21,7 @@ public class OrderItemJpaImpl implements OrderItemRepository {
         var jpaEntities = orderItems.stream()
                 .map(orderItemMapper::toEntity)
                 .toList();
-        var savedEntities = orderItemJpaRepository.saveAll(jpaEntities);
+        var savedEntities = orderItemRepository.saveAll(jpaEntities);
         return savedEntities.stream()
                 .map(orderItemMapper::toDomain)
                 .toList();
@@ -30,21 +29,21 @@ public class OrderItemJpaImpl implements OrderItemRepository {
 
     @Override
     public List<OrderItem> findByOrderId(Long orderId) {
-        return orderItemJpaRepository.findByOrderId(orderId).stream()
+        return orderItemRepository.findByOrderId(orderId).stream()
                 .map(orderItemMapper::toDomain)
                 .toList();
     }
 
     @Override
     public List<OrderItem> findByOrderIdIn(List<Long> orderIds) {
-        return orderItemJpaRepository.findByOrderIdIn(orderIds).stream()
+        return orderItemRepository.findByOrderIdIn(orderIds).stream()
                 .map(orderItemMapper::toDomain)
                 .toList();
     }
 
     @Override
     public Map<Long, Integer> countSalesByProductSince(Instant since) {
-        return orderItemJpaRepository.countSalesByProductSince(since).stream()
+        return orderItemRepository.countSalesByProductSince(since).stream()
                 .collect(Collectors.toMap(
                         ProductSalesResult::productId,
                         ProductSalesResult::getTotalQuantity
@@ -53,6 +52,6 @@ public class OrderItemJpaImpl implements OrderItemRepository {
 
     @Override
     public void deleteAll() {
-        orderItemJpaRepository.deleteAll();
+        orderItemRepository.deleteAll();
     }
 }

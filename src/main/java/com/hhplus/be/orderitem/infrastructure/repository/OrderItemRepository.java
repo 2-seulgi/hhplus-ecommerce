@@ -1,6 +1,6 @@
 package com.hhplus.be.orderitem.infrastructure.repository;
 
-import com.hhplus.be.orderitem.infrastructure.entity.OrderItemJpaEntity;
+import com.hhplus.be.orderitem.infrastructure.entity.OrderItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -8,18 +8,18 @@ import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 import java.util.List;
 
-public interface OrderItemJpaRepository extends JpaRepository<OrderItemJpaEntity, Long> {
+public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
-    List<OrderItemJpaEntity> findByOrderId(Long orderId);
+    List<OrderItem> findByOrderId(Long orderId);
 
-    List<OrderItemJpaEntity> findByOrderIdIn(List<Long> orderIds);
+    List<OrderItem> findByOrderIdIn(List<Long> orderIds);
 
     @Query("""
         SELECT new com.hhplus.be.orderitem.infrastructure.repository.ProductSalesResult(
             oi.productId,
             SUM(oi.quantity)
         )
-        FROM OrderItemJpaEntity oi
+        FROM OrderItem oi
         JOIN com.hhplus.be.order.infrastructure.entity.OrderJpaEntity o ON oi.orderId = o.id
         WHERE o.status = 'CONFIRMED'
         AND o.paidAt >= :since

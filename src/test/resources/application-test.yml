@@ -3,29 +3,30 @@ spring:
     name: ecommerce
 
   flyway:
-    enabled: false
+    enabled: false  # 테스트에서는 JPA DDL로 스키마 생성
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    # URL/ID/PW는 Testcontainers가 override 함
+    # URL/ID/PW는 Testcontainers가 override
 
   jpa:
+    open-in-view: false
+    show-sql: false  # datasource-proxy가 대신 찍으므로 false
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
-    open-in-view: false
     properties:
       hibernate.format_sql: true
-      hibernate.generate_statistics: true
+      hibernate.generate_statistics: true  # 성능 통계
+
+# Datasource Proxy 설정 (테스트용 쿼리 로깅)
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: true
+      multiline: true
+      logging: slf4j
 
 logging:
-  file:
-    name: build/slow-sql.log
-
   level:
-    # Hibernate SQL + 파라미터 로그
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
-
-    # datasource-proxy slow query 로그
-    net.ttddyy.dsproxy: INFO
+    # Datasource Proxy 쿼리 로그
+    net.ttddyy.dsproxy.listener: DEBUG

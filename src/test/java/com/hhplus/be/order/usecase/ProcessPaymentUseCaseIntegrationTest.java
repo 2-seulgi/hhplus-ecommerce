@@ -50,8 +50,6 @@ import static org.assertj.core.api.Assertions.*;
  * - 트랜잭션 롤백 확인
  * - 동시 결제 처리
  */
-@SpringBootTest
-@ActiveProfiles("test")
 class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
 
     @Autowired

@@ -33,8 +33,6 @@ import static org.assertj.core.api.Assertions.*;
  * - 주문 목록 조회: IN 절에 많은 ID 포함 시 성능 이슈
  * - N+1 방지를 위한 일괄 조회 성능 검증
  */
-@SpringBootTest
-@ActiveProfiles("test")
 class OrderServiceIntegrationTest extends IntegrationTestSupport {
 
     @Autowired
