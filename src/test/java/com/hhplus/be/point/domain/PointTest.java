@@ -1,6 +1,8 @@
 package com.hhplus.be.point.domain;
 
 import com.hhplus.be.common.exception.InvalidInputException;
+import com.hhplus.be.point.domain.model.Point;
+import com.hhplus.be.point.domain.model.PointType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

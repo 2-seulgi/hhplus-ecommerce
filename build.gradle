@@ -29,12 +29,29 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework:spring-aspects'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // MySQL
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Flyway
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+
+    // Testcontainers
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+
+    // ✅ 쿼리 로깅용
+    implementation "com.github.gavlyukovskiy:datasource-proxy-spring-boot-starter:1.9.0"
+    implementation "com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.0"
 }
 
 tasks.named('test') {

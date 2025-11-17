@@ -2,7 +2,7 @@ package com.hhplus.be.usercoupon.controller;
 
 import com.hhplus.be.usercoupon.controller.dto.GetUserCouponsResponse;
 import com.hhplus.be.usercoupon.controller.dto.IssueCouponResponse;
-import com.hhplus.be.usercoupon.service.CouponService;
+import com.hhplus.be.usercoupon.service.UserCouponService;
 import com.hhplus.be.usercoupon.service.dto.GetUserCouponsQuery;
 import com.hhplus.be.usercoupon.service.dto.GetUserCouponsResult;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponCommand;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class CouponController {
 
-    private final CouponService couponService;
+    private final UserCouponService userCouponService;
 
     /**
      * 선착순 쿠폰 발급
@@ -32,7 +32,7 @@ public class CouponController {
             @PathVariable Long couponId
     ) {
         IssueCouponCommand command = new IssueCouponCommand(userId, couponId);
-        IssueCouponResult result = couponService.issueCoupon(command);
+        IssueCouponResult result = userCouponService.issueCoupon(command);
         return ResponseEntity.ok(IssueCouponResponse.from(result));
     }
 
@@ -47,7 +47,7 @@ public class CouponController {
             @RequestParam(required = false, defaultValue = "false") Boolean available
     ) {
         GetUserCouponsQuery query = new GetUserCouponsQuery(userId, available);
-        GetUserCouponsResult result = couponService.getUserCoupons(query);
+        GetUserCouponsResult result = userCouponService.getUserCoupons(query);
         return ResponseEntity.ok(GetUserCouponsResponse.from(result));
     }
 }

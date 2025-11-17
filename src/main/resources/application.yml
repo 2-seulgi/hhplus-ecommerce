@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: ecommerce
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/ecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    open-in-view: false
+    show-sql: false  # datasource-proxy가 대신 찍으므로 false
+    hibernate:
+      ddl-auto: update  # Flyway 제거하고 JPA로 스키마 관리
+    properties:
+      hibernate.format_sql: true
+      hibernate.dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: false  # Flyway 비활성화
+
+logging:
+  level:
+    p6spy: DEBUG

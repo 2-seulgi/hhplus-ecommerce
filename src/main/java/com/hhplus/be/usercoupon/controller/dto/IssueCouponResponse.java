@@ -1,6 +1,6 @@
 package com.hhplus.be.usercoupon.controller.dto;
 
-import com.hhplus.be.coupon.domain.DiscountType;
+import com.hhplus.be.coupon.domain.model.DiscountType;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponResult;
 
 import java.time.Instant;
