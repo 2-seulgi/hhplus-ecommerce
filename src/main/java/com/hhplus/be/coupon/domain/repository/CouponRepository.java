@@ -8,6 +8,7 @@ import java.util.Optional;
 public interface CouponRepository {
     Coupon save(Coupon coupon);
     Optional<Coupon> findById(Long id);
+    Optional<Coupon> findByIdForUpdate(Long id);  // 비관적 락
     Optional<Coupon> findByCode(String code);
     List<Coupon> findAll();
 
