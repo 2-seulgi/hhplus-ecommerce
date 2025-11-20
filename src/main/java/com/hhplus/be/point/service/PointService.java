@@ -83,7 +83,7 @@ public class PointService {
         // 도메인 모델에 비즈니스 로직 위임
         user.use(amount); // InsufficientBalanceException 발생 가능
 
-        return user;
+        return userRepository.save(user);
     }
 
     /**

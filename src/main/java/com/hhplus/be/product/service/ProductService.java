@@ -6,11 +6,13 @@ import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.repository.ProductRepository;
 import com.hhplus.be.product.service.dto.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -104,10 +106,21 @@ public class ProductService {
 
     /**
      * 여러 상품의 재고 일괄 차감 (UseCase용)
+     * Pessimistic Write Lock을 사용하여 동시성 제어
+     *
+     * 데드락 방지를 위해 productId 오름차순으로 정렬하여 락 획득
+     * 예: [3,1,5] → [1,3,5] 순서로 락 획득
      */
+    @Transactional
     public void decreaseStocks(List<OrderItem> orderItems) {
-        for (OrderItem orderItem : orderItems) {
-            Product product = productRepository.findById(orderItem.getProductId())
+        // 데드락 방지: productId 오름차순 정렬
+        List<OrderItem> sortedItems = orderItems.stream()
+                .sorted(Comparator.comparing(OrderItem::getProductId))
+                .toList();
+
+        for (OrderItem orderItem : sortedItems) {
+            // Pessimistic Lock으로 조회 (SELECT ... FOR UPDATE)
+            Product product = productRepository.findByIdForUpdate(orderItem.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
             product.decreaseStock(orderItem.getQuantity());
             productRepository.save(product);  // 변경사항 저장

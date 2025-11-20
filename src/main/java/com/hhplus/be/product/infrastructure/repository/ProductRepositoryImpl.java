@@ -27,6 +27,12 @@ public class ProductRepositoryImpl implements com.hhplus.be.product.domain.repos
     }
 
     @Override
+    public Optional<Product> findByIdForUpdate(Long productId) {
+        return productJpaRepository.findByIdForUpdate(productId)
+                .map(productMapper::toDomain);
+    }
+
+    @Override
     public List<Product> findAll() {
         return productJpaRepository.findAll().stream()
                 .map(productMapper::toDomain)
