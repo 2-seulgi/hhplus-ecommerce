@@ -12,6 +12,7 @@ import com.hhplus.be.usercoupon.service.dto.GetUserCouponsResult;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponCommand;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponResult;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,14 +32,13 @@ public class UserCouponService {
      *
      * 비즈니스 규칙:
      * 1. 사용자 존재 확인
-     * 2. 쿠폰 존재 확인
+     * 2. 쿠폰 조회 및 락 획득 (비관적 락으로 동시성 제어)
      * 3. 발급 기간 확인 (issueStartAt ~ issueEndAt)
      * 4. 중복 발급 확인 (1인 1회 제한)
-     * 5. 발급 수량 확인 (낙관적 락으로 동시성 제어)
-     * 6. 쿠폰 발급 수량 증가
-     * 7. UserCoupon 생성
+     * 5. 발급 수량 확인 및 증가
+     * 6. UserCoupon 생성
      *
-     * 참고: 낙관적 락 재시도는 UserCouponServiceFacade에서 처리
+     * 참고: 비관적 락으로 재시도 불필요
      */
     @Transactional
     public IssueCouponResult issueCoupon(IssueCouponCommand command) {
@@ -46,8 +46,8 @@ public class UserCouponService {
         userRepository.findById(command.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("존재하지 않는 회원입니다"));
 
-        // 2. 쿠폰 존재 확인
-        Coupon coupon = couponRepository.findById(command.couponId())
+        // 2. 쿠폰 조회 및 락 획득 (SELECT ... FOR UPDATE)
+        Coupon coupon = couponRepository.findByIdForUpdate(command.couponId())
                 .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
 
         // 3. 발급 기간 확인
@@ -62,14 +62,18 @@ public class UserCouponService {
                     throw new BusinessException("이미 발급받은 쿠폰입니다", "ALREADY_ISSUED");
                 });
 
-        // 5-6. 쿠폰 발급 수량 증가 (낙관적 락으로 동시성 제어)
-        // Coupon.increaseIssued()는 발급 가능 여부 확인 후 증가
+        // 5. 쿠폰 발급 수량 증가 (비관적 락으로 이미 보호됨)
         coupon.increaseIssued();
-        couponRepository.save(coupon);  // @Version으로 낙관적 락 적용
+        couponRepository.save(coupon);
 
-        // 7. UserCoupon 생성
+        // 6. UserCoupon 생성
         UserCoupon userCoupon = UserCoupon.create(command.userId(), command.couponId(), now);
-        userCouponRepository.save(userCoupon);
+        try {
+            userCouponRepository.save(userCoupon);
+        } catch (DataIntegrityViolationException e) {
+            // UNIQUE 제약 위반 (동시성 상황에서 중복 발급 시도)
+            throw new BusinessException("이미 발급받은 쿠폰입니다", "ALREADY_ISSUED");
+        }
 
         return IssueCouponResult.from(userCoupon, coupon);
     }

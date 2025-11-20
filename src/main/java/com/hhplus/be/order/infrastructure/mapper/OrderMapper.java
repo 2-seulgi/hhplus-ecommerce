@@ -21,7 +21,8 @@ public class OrderMapper {
                 entity.getCanceledAt(),
                 entity.getRefundedAt(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVersion()
         );
     }
 
@@ -40,7 +41,8 @@ public class OrderMapper {
                 domain.getCanceledAt(),
                 domain.getRefundedAt(),
                 domain.getCreatedAt(),
-                domain.getUpdatedAt()
+                domain.getUpdatedAt(),
+                domain.getVersion()
         );
     }
 }

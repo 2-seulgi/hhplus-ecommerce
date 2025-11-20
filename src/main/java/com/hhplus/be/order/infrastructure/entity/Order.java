@@ -59,4 +59,7 @@ public class Order {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Version
+    private int version;
+
 }

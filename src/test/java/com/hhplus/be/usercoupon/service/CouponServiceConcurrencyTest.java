@@ -20,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,7 +36,7 @@ import static org.assertj.core.api.Assertions.*;
 class CouponServiceConcurrencyTest extends IntegrationTestSupport {
 
     @Autowired
-    private UserCouponServiceFacade couponService;
+    private UserCouponService couponService;
 
     @Autowired
     private CouponRepository couponRepository;
@@ -47,10 +48,6 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
     private UserCouponRepository userCouponRepository;
 
     @BeforeEach
-    void setUp() {
-        // 테스트 격리를 위한 초기화는 인메모리 저장소 특성상 어려우므로
-        // 각 테스트에서 새로운 쿠폰과 유저를 생성합니다
-    }
 
     @Test
     @DisplayName("동시성 테스트: 100명이 선착순 10장 쿠폰을 동시에 발급받으면 정확히 10명만 성공")
@@ -80,7 +77,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         for (int i = 1; i <= 100; i++) {
             User user = User.create(
                     "유저" + i,
-                    "user" + i + "_" + System.currentTimeMillis() + "@test.com",
+                    "user" + i + "_" + UUID.randomUUID() + "@test.com",
                     100000
             );
             User savedUser = userRepository.save(user);
@@ -160,7 +157,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         List<Coupon> coupons = new ArrayList<>();
         for (int i = 1; i <= 5; i++) {
             Coupon coupon = Coupon.create(
-                    "MULTI_COUPON_" + System.currentTimeMillis() + "_" + i,
+                    "MC_" + System.nanoTime() + "_" + i,
                     "쿠폰 " + i,
                     DiscountType.FIXED,
                     5000,
@@ -218,7 +215,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         List<Coupon> coupons = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {
             Coupon coupon = Coupon.create(
-                    "MULTI_TEST_" + System.currentTimeMillis() + "_" + i,
+                    "MT_" + System.nanoTime() + "_" + i,
                     "쿠폰 " + i,
                     DiscountType.FIXED,
                     5000,
@@ -238,7 +235,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         for (int i = 1; i <= 50; i++) {
             User user = User.create(
                     "유저" + i,
-                    "user" + i + "_" + System.currentTimeMillis() + "@multi.com",
+                    "user" + i + "_" + UUID.randomUUID() + "@multi.com",
                     100000
             );
             User savedUser = userRepository.save(user);
@@ -286,7 +283,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         // Given: 쿠폰 생성
         Instant now = Instant.now();
         Coupon coupon = Coupon.create(
-                "DUPLICATE_TEST_" + System.currentTimeMillis(),
+                "DUP_" + System.nanoTime(),
                 "중복 방지 쿠폰",
                 DiscountType.FIXED,
                 5000,
@@ -300,7 +297,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         Coupon savedCoupon = couponRepository.save(coupon);
 
         // 유저 생성
-        User user = User.create("중복테스트유저", "dup_" + System.currentTimeMillis() + "@test.com", 100000);
+        User user = User.create("중복테스트유저", "dup_" + UUID.randomUUID() + "@test.com", 100000);
         User savedUser = userRepository.save(user);
 
         // When: 같은 유저가 같은 쿠폰을 10번 동시에 발급 시도
@@ -346,7 +343,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         // Given: 선착순 500장 쿠폰
         Instant now = Instant.now();
         Coupon coupon = Coupon.create(
-                "PERF_TEST_" + System.currentTimeMillis(),
+                "PERF_" + System.nanoTime(),
                 "성능 테스트 쿠폰",
                 DiscountType.FIXED,
                 5000,
@@ -364,7 +361,7 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         for (int i = 1; i <= 500; i++) {
             User user = User.create(
                     "성능유저" + i,
-                    "perf" + i + "_" + System.currentTimeMillis() + "@test.com",
+                    "perf" + i + "_" + UUID.randomUUID() + "@test.com",
                     100000
             );
             User savedUser = userRepository.save(user);

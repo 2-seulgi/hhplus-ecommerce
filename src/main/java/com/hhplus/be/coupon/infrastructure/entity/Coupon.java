@@ -39,9 +39,6 @@ public class Coupon {
     @Column(nullable = false)
     private int issuedQuantity;
 
-    @Version
-    private int version;
-
     @Column(nullable = false)
     private Instant issueStartAt;
 
