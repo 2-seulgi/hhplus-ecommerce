@@ -1,5 +1,6 @@
 package com.hhplus.be.orderitem.infrastructure.entity;
 
+import com.hhplus.be.order.infrastructure.entity.Order;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,8 +13,8 @@ import java.time.Instant;
 @Table(
     name = "order_items",
     indexes = {
-        // 인기 상품 조회 최적화: 커버링 인덱스 (테이블 접근 없이 인덱스만으로 조회)
-        @Index(name = "idx_order_item_covering", columnList = "orderId, productId, quantity")
+        // 인기 상품 조회 최적화: 복합 인덱스 (orderId로 JOIN, productId로 GROUP BY)
+        @Index(name = "idx_order_item_order_product", columnList = "orderId, productId, quantity")
     }
 )
 @Getter
@@ -27,6 +28,10 @@ public class OrderItem {
 
     @Column(nullable = false)
     private Long orderId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "orderId", nullable = false, updatable = false, insertable = false)
+    private Order order;
 
     @Column(nullable = false)
     private Long productId;

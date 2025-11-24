@@ -28,6 +28,12 @@ public class CouponRepositoryImpl implements com.hhplus.be.coupon.domain.reposit
     }
 
     @Override
+    public Optional<Coupon> findByIdForUpdate(Long id) {
+        return couponJpaRepository.findByIdForUpdate(id)
+                .map(couponMapper::toDomain);
+    }
+
+    @Override
     public Optional<Coupon> findByCode(String code) {
         return couponJpaRepository.findByCode(code)
                 .map(couponMapper::toDomain);

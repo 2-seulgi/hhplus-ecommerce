@@ -14,6 +14,10 @@ import java.time.Instant;
     indexes = {
         // 사용자 쿠폰 조회 최적화: user_id + used + issued_at 복합 인덱스
         @Index(name = "idx_user_coupon_user_used_issued", columnList = "userId, used, issuedAt")
+    },
+    uniqueConstraints = {
+        // 중복 발급 방지: user_id + coupon_id 복합 유니크 제약 조건
+        @UniqueConstraint(name = "uk_user_coupon", columnNames = {"userId", "couponId"})
     }
 )
 @Getter

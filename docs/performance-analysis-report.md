@@ -24,23 +24,28 @@
 
 **위치**: `ProductService.java:62` - `getTopProducts()`
 
-**쿼리**:
+**쿼리** (2단계 처리):
 ```sql
-SELECT oi.product_id, p.name, SUM(oi.quantity) as total_sales
+-- 1단계: DB에서 상품별 판매량 집계
+SELECT oi.product_id, SUM(oi.quantity) as total_sales
 FROM order_items oi
 INNER JOIN orders o ON oi.order_id = o.id
-INNER JOIN product p ON oi.product_id = p.id
 WHERE o.status = 'CONFIRMED'
   AND o.paid_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
-GROUP BY oi.product_id, p.name
-ORDER BY total_sales DESC
-LIMIT 5
+GROUP BY oi.product_id
+
+-- 2단계: Java에서 정렬 + LIMIT 후, 상품 정보 일괄 조회
+SELECT * FROM product WHERE id IN (?, ?, ?, ?, ?)
 ```
 
-**문제점**:
-- ORDER_ITEMS와 ORDERS 테이블 JOIN 후 집계 쿼리 수행
-- CONFIRMED 상태 필터링 + 날짜 범위 조회
-- 주문 데이터가 많아질수록 성능 저하 가능성 높음
+**현재 구현 방식**:
+- DB: 집계만 수행 (ORDER BY 없음 → filesort 회피)
+- Java: 정렬 + LIMIT 처리
+- DB: 상위 N개 상품 정보 일괄 조회 (`findAllById`)
+
+**장점**:
+- DB filesort 회피로 인덱스 활용 극대화
+- 유연한 정렬 로직 변경 가능
 
 ---
 
@@ -65,7 +70,7 @@ LIMIT 5
 - ⚠️ **Full Table Scan**: order_items 테이블 전체 스캔 (200 rows)
 - ⚠️ **인덱스 미사용**: key=NULL
 - ⚠️ **임시 테이블 사용**: GROUP BY로 인한 임시 테이블 생성
-- ⚠️ **Filesort 발생**: ORDER BY로 인한 정렬 작업
+- ✅ **Filesort 회피**: ORDER BY를 Java에서 처리하여 DB filesort 없음
 
 ---
 
@@ -76,8 +81,8 @@ LIMIT 5
 -- 1. orders 테이블: status + paid_at 복합 인덱스
 CREATE INDEX idx_order_status_paid ON orders(status, paid_at DESC);
 
--- 2. order_items 테이블: 커버링 인덱스
-CREATE INDEX idx_order_item_covering ON order_items(order_id, product_id, quantity);
+-- 2. order_items 테이블: 복합 인덱스 (JOIN + GROUP BY 최적화)
+CREATE INDEX idx_order_item_order_product ON order_items(order_id, product_id, quantity);
 ```
 
 #### 적용 방법:
@@ -104,7 +109,7 @@ CREATE INDEX idx_order_item_covering ON order_items(order_id, product_id, quanti
 | id | type   | table | key                  | Extra         | rows | filtered |
 +----+--------+-------+----------------------+---------------+------+----------+
 | 1  | SIMPLE | o     | idx_order_status_paid| Using index   | 50   | 100.0    |
-| 1  | SIMPLE | oi    | idx_order_item_covering| Using index | 100  | 100.0    |
+| 1  | SIMPLE | oi    | idx_order_item_order_product| Using where | 100  | 100.0    |
 | 1  | SIMPLE | p     | PRIMARY              | NULL          | 1    | 100.0    |
 +----+--------+-------+----------------------+---------------+------+----------+
 ```
@@ -112,8 +117,7 @@ CREATE INDEX idx_order_item_covering ON order_items(order_id, product_id, quanti
 **개선 효과**:
 - ⚡ **쿼리 타입**: Full Table Scan → Index Range Scan
 - ⚡ **스캔 행 수**: 200 rows → 50~100 rows (50~75% 감소)
-- ⚡ **커버링 인덱스**: order_items 테이블 접근 최소화
-- ⚡ **Filesort 제거**: 정렬 작업 최적화
+- ⚡ **복합 인덱스**: JOIN과 GROUP BY 성능 개선
 - 📈 **확장성**: 데이터 10배 증가 시에도 성능 유지 가능
 
 **예상 성능** (운영 환경):
@@ -373,7 +377,7 @@ List<Product> products = productRepository.findAllById(productIds);
 ```sql
 -- 1. 인기 상품 조회 최적화
 CREATE INDEX idx_order_status_paid ON orders(status, paid_at DESC);
-CREATE INDEX idx_order_item_covering ON order_items(order_id, product_id, quantity);
+CREATE INDEX idx_order_item_order_product ON order_items(order_id, product_id, quantity);
 
 -- 2. 주문 목록 조회 최적화
 CREATE INDEX idx_order_user_created ON orders(user_id, created_at DESC);

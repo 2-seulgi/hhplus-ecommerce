@@ -3,6 +3,8 @@ package com.hhplus.be.order.infrastructure.mapper;
 import com.hhplus.be.order.infrastructure.entity.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class OrderMapper {
 
@@ -21,7 +23,8 @@ public class OrderMapper {
                 entity.getCanceledAt(),
                 entity.getRefundedAt(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVersion()
         );
     }
 
@@ -40,7 +43,9 @@ public class OrderMapper {
                 domain.getCanceledAt(),
                 domain.getRefundedAt(),
                 domain.getCreatedAt(),
-                domain.getUpdatedAt()
+                domain.getUpdatedAt(),
+                domain.getVersion(),
+                List.of()
         );
     }
 }

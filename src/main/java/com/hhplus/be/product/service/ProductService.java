@@ -6,11 +6,13 @@ import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.repository.ProductRepository;
 import com.hhplus.be.product.service.dto.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -67,18 +69,25 @@ public class ProductService {
         // 2. CONFIRMED 주문의 상품별 판매량 집계
         Map<Long, Integer> salesByProduct = orderItemRepository.countSalesByProductSince(since);
 
-        // 3. 판매량 Top N 상품 조회
-        List<TopProductResult.ProductItem> items = salesByProduct.entrySet().stream()
-                // 판매량 내림차순 정렬
+        // 3. 판매량 Top N 상품 ID 추출
+        List<Long> topProductIds = salesByProduct.entrySet().stream()
                 .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
-                // 상위 N개 선택
                 .limit(query.limit())
-                // Product 조회 + DTO 변환
-                .map(entry -> {
-                    Long productId = entry.getKey();
-                    int salesCount = entry.getValue();
-                    Product product = productRepository.findById(productId)
-                            .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
+                .map(Map.Entry::getKey)
+                .toList();
+
+        // 4. 상품 정보 일괄 조회 (N+1 방지)
+        Map<Long, Product> productMap = productRepository.findAllById(topProductIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
+
+        // 5. 판매량 순서 유지하며 DTO 변환
+        List<TopProductResult.ProductItem> items = topProductIds.stream()
+                .map(productId -> {
+                    Product product = productMap.get(productId);
+                    if (product == null) {
+                        throw new ResourceNotFoundException("상품을 찾을 수 없습니다: " + productId);
+                    }
+                    int salesCount = salesByProduct.get(productId);
                     return TopProductResult.ProductItem.from(product, salesCount);
                 })
                 .toList();
@@ -104,10 +113,21 @@ public class ProductService {
 
     /**
      * 여러 상품의 재고 일괄 차감 (UseCase용)
+     * Pessimistic Write Lock을 사용하여 동시성 제어
+     *
+     * 데드락 방지를 위해 productId 오름차순으로 정렬하여 락 획득
+     * 예: [3,1,5] → [1,3,5] 순서로 락 획득
      */
+    @Transactional
     public void decreaseStocks(List<OrderItem> orderItems) {
-        for (OrderItem orderItem : orderItems) {
-            Product product = productRepository.findById(orderItem.getProductId())
+        // 데드락 방지: productId 오름차순 정렬
+        List<OrderItem> sortedItems = orderItems.stream()
+                .sorted(Comparator.comparing(OrderItem::getProductId))
+                .toList();
+
+        for (OrderItem orderItem : sortedItems) {
+            // Pessimistic Lock으로 조회 (SELECT ... FOR UPDATE)
+            Product product = productRepository.findByIdForUpdate(orderItem.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
             product.decreaseStock(orderItem.getQuantity());
             productRepository.save(product);  // 변경사항 저장

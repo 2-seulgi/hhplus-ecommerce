@@ -63,6 +63,7 @@ public class CouponService {
         UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                 .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
         userCoupon.use();
+        userCouponRepository.save(userCoupon);  // 명시적 save 추가
     }
 
     /**

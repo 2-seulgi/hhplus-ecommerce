@@ -190,12 +190,14 @@ class ProductServiceTest {
         given(orderItemRepository.countSalesByProductSince(any()))
                 .willReturn(salesMap);
 
-        // 상위 5개에 대해서만 Product 조회 스텁
-        given(productRepository.findById(10L)).willReturn(Optional.of(createProductWithId(10L, "P10", 10000)));
-        given(productRepository.findById(9L)).willReturn(Optional.of(createProductWithId(9L, "P9", 9000)));
-        given(productRepository.findById(8L)).willReturn(Optional.of(createProductWithId(8L, "P8", 8000)));
-        given(productRepository.findById(7L)).willReturn(Optional.of(createProductWithId(7L, "P7", 7000)));
-        given(productRepository.findById(6L)).willReturn(Optional.of(createProductWithId(6L, "P6", 6000)));
+        // 상위 5개에 대해서만 Product 일괄 조회 스텁
+        given(productRepository.findAllById(any())).willReturn(java.util.List.of(
+                createProductWithId(10L, "P10", 10000),
+                createProductWithId(9L, "P9", 9000),
+                createProductWithId(8L, "P8", 8000),
+                createProductWithId(7L, "P7", 7000),
+                createProductWithId(6L, "P6", 6000)
+        ));
 
         var query = new TopProductQuery("3d", 5);
 
