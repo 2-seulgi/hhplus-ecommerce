@@ -31,6 +31,11 @@ public interface ProductRepository {
     List<Product> findAll();
 
     /**
+     * 여러 상품 ID로 일괄 조회
+     */
+    List<Product> findAllById(List<Long> productIds);
+
+    /**
      * 상품 저장 (생성/수정)
      */
     Product save(Product product);

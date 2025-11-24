@@ -40,6 +40,13 @@ public class ProductRepositoryImpl implements com.hhplus.be.product.domain.repos
     }
 
     @Override
+    public List<Product> findAllById(List<Long> productIds) {
+        return productJpaRepository.findAllById(productIds).stream()
+                .map(productMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Product save(Product product) {
         var entity = productMapper.toEntity(product);
         var savedEntity = productJpaRepository.save(entity);
