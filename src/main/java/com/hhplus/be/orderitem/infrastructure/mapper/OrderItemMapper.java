@@ -27,6 +27,7 @@ public class OrderItemMapper {
         return new OrderItem(
                 domain.getId(),
                 domain.getOrderId(),
+                null,  // Order는 insertable=false, updatable=false로 설정됨
                 domain.getProductId(),
                 domain.getProductName(),
                 domain.getUnitPrice(),

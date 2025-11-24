@@ -69,18 +69,25 @@ public class ProductService {
         // 2. CONFIRMED 주문의 상품별 판매량 집계
         Map<Long, Integer> salesByProduct = orderItemRepository.countSalesByProductSince(since);
 
-        // 3. 판매량 Top N 상품 조회
-        List<TopProductResult.ProductItem> items = salesByProduct.entrySet().stream()
-                // 판매량 내림차순 정렬
+        // 3. 판매량 Top N 상품 ID 추출
+        List<Long> topProductIds = salesByProduct.entrySet().stream()
                 .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
-                // 상위 N개 선택
                 .limit(query.limit())
-                // Product 조회 + DTO 변환
-                .map(entry -> {
-                    Long productId = entry.getKey();
-                    int salesCount = entry.getValue();
-                    Product product = productRepository.findById(productId)
-                            .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
+                .map(Map.Entry::getKey)
+                .toList();
+
+        // 4. 상품 정보 일괄 조회 (N+1 방지)
+        Map<Long, Product> productMap = productRepository.findAllById(topProductIds).stream()
+                .collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
+
+        // 5. 판매량 순서 유지하며 DTO 변환
+        List<TopProductResult.ProductItem> items = topProductIds.stream()
+                .map(productId -> {
+                    Product product = productMap.get(productId);
+                    if (product == null) {
+                        throw new ResourceNotFoundException("상품을 찾을 수 없습니다: " + productId);
+                    }
+                    int salesCount = salesByProduct.get(productId);
                     return TopProductResult.ProductItem.from(product, salesCount);
                 })
                 .toList();

@@ -14,6 +14,7 @@ spring:
     show-sql: false  # datasource-proxy가 대신 찍으므로 false
     hibernate:
       ddl-auto: create-drop
+      default-batch-fetch-size: 100
     properties:
       hibernate.format_sql: true
       hibernate.generate_statistics: false  # 성능 통계
