@@ -24,6 +24,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -65,7 +71,7 @@ class ProductServiceIntegrationTest extends IntegrationTestSupport {
         // 테스트 유저 생성
         testUser = User.create(
                 "상품테스트유저",
-                "product_test_" + System.currentTimeMillis() + "@test.com",
+                "product_test_" + UUID.randomUUID()  + "@test.com",
                 100000
         );
         testUser = userRepository.save(testUser);
@@ -322,4 +328,110 @@ class ProductServiceIntegrationTest extends IntegrationTestSupport {
         );
         orderItemRepository.saveAll(List.of(orderItem));
     }
+
+    @Test
+    @DisplayName("동시성 테스트: 20명이 재고 10개 상품을 동시 주문 하면 10명만 성공")
+    void concurrency_decreaseStocks_MultipleConcurrentOrders() throws InterruptedException {
+        // Given: 재고 10개 상품
+
+        Product product = Product.create(
+                "동시성테스트상품",
+                "재고 10개 상품",
+                5000,
+                10
+        );
+        product = productRepository.save(product);
+
+        // When: 20명이 동시에 1개씩 주문 시도
+        int threadCount = 20;
+
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failCount = new AtomicInteger(0);
+
+        Long productId = product.getId();
+
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    productService.decreaseStocks(List.of(
+                            OrderItem.create(0L, productId, "테스트", 5000, 1)
+                    ));
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    failCount.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await(10, TimeUnit.SECONDS);
+        executorService.shutdown();
+
+        // Then: 10명 성공, 10명 실패, 재고 0
+        assertThat(successCount.get()).isEqualTo(10);
+        assertThat(failCount.get()).isEqualTo(10);
+
+        Product updatedProduct = productRepository.findById(productId).orElseThrow();
+        assertThat(updatedProduct.getStock()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("동시성 테스트: 여러 상품 역순 주문 시 데드락 발생하지 않음")
+    void concurrency_MultipleProducts_ReverseOrder_NoDeadlock() throws InterruptedException {
+        // Given:
+        Product productA = productRepository.save(Product.create("상품A", "설명A", 1000, 100));
+        Product productB = productRepository.save(Product.create("상품B", "설명B", 2000, 100));
+        Product productC = productRepository.save(Product.create("상품C", "설명C", 3000, 100));
+        // 정순: [A, B, C], 역순: [C, B, A]
+        List<OrderItem> orderItems1 = List.of(
+                OrderItem.create(0L, productA.getId(), "A", 1000, 1),
+                OrderItem.create(0L, productB.getId(), "B", 2000, 1),
+                OrderItem.create(0L, productC.getId(), "C", 3000, 1)
+        );
+        List<OrderItem> orderItems2 = List.of(
+                OrderItem.create(0L, productC.getId(), "C", 3000, 1),
+                OrderItem.create(0L, productB.getId(), "B", 2000, 1),
+                OrderItem.create(0L, productA.getId(), "A", 1000, 1)
+        );
+
+        // When: 두 유저가 동시에 결제
+        int threadCount = 10;  // 5쌍의 정순/역순
+
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        for (int i = 0; i < threadCount / 2; i++) {
+            // 정순 주문
+            executorService.submit(() -> {
+                try {
+                    productService.decreaseStocks(orderItems1);
+                } finally {
+                    latch.countDown();
+                }
+            });
+            // 역순 주문
+            executorService.submit(() -> {
+                try {
+                    productService.decreaseStocks(orderItems2);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        // Then:
+        // - 타임아웃 없이 완료 (데드락 없음)
+        boolean completed = latch.await(10, TimeUnit.SECONDS);
+        executorService.shutdown();
+
+        assertThat(completed).isTrue();
+        assertThat(productRepository.findById(productA.getId()).orElseThrow().getStock()).isEqualTo(90);
+        assertThat(productRepository.findById(productB.getId()).orElseThrow().getStock()).isEqualTo(90);
+        assertThat(productRepository.findById(productC.getId()).orElseThrow().getStock()).isEqualTo(90);
+    }
+
 }

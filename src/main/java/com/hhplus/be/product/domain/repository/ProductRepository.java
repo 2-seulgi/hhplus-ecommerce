@@ -20,9 +20,20 @@ public interface ProductRepository {
     Optional<Product> findById(Long productId);
 
     /**
+     * 상품 ID로 조회 (Pessimistic Write Lock)
+     * 재고 차감 시 동시성 제어를 위해 사용
+     */
+    Optional<Product> findByIdForUpdate(Long productId);
+
+    /**
      * 전체 상품 목록 조회
      */
     List<Product> findAll();
+
+    /**
+     * 여러 상품 ID로 일괄 조회
+     */
+    List<Product> findAllById(List<Long> productIds);
 
     /**
      * 상품 저장 (생성/수정)

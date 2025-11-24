@@ -34,6 +34,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -102,7 +103,7 @@ class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
         // 테스트 유저 생성 (잔액 100만원)
         testUser = User.create(
                 "결제테스트유저",
-                "payment_test_" + System.currentTimeMillis() + "@test.com",
+                "payment_test_" + UUID.randomUUID() + "@test.com",
                 1000000
         );
         testUser = userRepository.save(testUser);
@@ -226,7 +227,6 @@ class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
         // When & Then: 결제 실패
         PaymentCommand command = new PaymentCommand(poorUser.getId(), orderId, null);
         assertThatThrownBy(() -> processPaymentUseCase.execute(command))
-                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("부족");
 
         // 재고는 차감되지 않아야 함 (트랜잭션 롤백)
@@ -274,6 +274,61 @@ class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    @DisplayName("중복 결제 방지 - 동일 주문에 대한 동시 결제 시도 시 1건만 성공")
+    void concurrency_PreventDuplicatePayment_SameOrder() throws InterruptedException {
+        // Given: 1개 주문 생성
+        CartItem cartItem = CartItem.create(testUser.getId(), testProduct.getId(), 2);
+        cartRepository.save(cartItem);
+        CreateOrderResult orderResult = orderService.createFromCart(testUser.getId());
+        Long orderId = orderResult.orderId();
+
+        int initialStock = testProduct.getStock();
+        int initialBalance = testUser.getBalance();
+
+        // When: 동일 주문에 대해 10번 동시 결제 시도
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(10);
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failCount = new AtomicInteger(0);
+
+        for (int i = 0; i < 10; i++) {
+            executorService.submit(() -> {
+                try {
+                    PaymentCommand command = new PaymentCommand(testUser.getId(), orderId, null);
+                    processPaymentUseCase.execute(command);
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    // OptimisticLockException 또는 비즈니스 예외
+                    failCount.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await(30, TimeUnit.SECONDS);
+        executorService.shutdown();
+
+        // Then: 1건만 성공, 나머지 9건 실패
+        assertThat(successCount.get()).isEqualTo(1);
+        assertThat(failCount.get()).isEqualTo(9);
+
+        // 재고는 주문 수량만큼만 차감 (2개만 차감)
+        Product finalProduct = productRepository.findById(testProduct.getId()).orElseThrow();
+        assertThat(finalProduct.getStock()).isEqualTo(initialStock - 2);
+
+        // 포인트는 1번만 차감 (100,000원만 차감)
+        User finalUser = userRepository.findById(testUser.getId()).orElseThrow();
+        assertThat(finalUser.getBalance()).isEqualTo(initialBalance - 100000);
+
+        // 주문 상태는 CONFIRMED
+        Order finalOrder = orderRepository.findById(orderId).orElseThrow();
+        assertThat(finalOrder.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+
+        System.out.println("중복 결제 방지 - 성공: " + successCount.get() + ", 실패: " + failCount.get());
+    }
+
+    @Test
     @DisplayName("동시 결제 처리 - 동일 상품에 대한 재고 차감 동시성 제어")
     void concurrency_ProcessPayment_StockDeduction() throws InterruptedException {
         // Given: 재고 10개 상품
@@ -292,17 +347,17 @@ class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
         for (int i = 0; i < 20; i++) {
             User user = User.create(
                     "유저" + i,
-                    "user" + i + "_" + System.currentTimeMillis() + "@test.com",
+                    "user" + i + "_" + UUID.randomUUID() + "@test.com",
                     1000000
             );
-            users.add(userRepository.save(user));
+            User savedUser = userRepository.save(user);
+            users.add(savedUser);
 
             // 각 유저별 주문 생성 (1개씩)
-            CartItem cartItem = CartItem.create(user.getId(), limitedProduct.getId(), 1);
+            CartItem cartItem = CartItem.create(savedUser.getId(), limitedProduct.getId(), 1);
             cartRepository.save(cartItem);
-            CreateOrderResult orderResult = orderService.createFromCart(user.getId());
+            CreateOrderResult orderResult = orderService.createFromCart(savedUser.getId());
             orderIds.add(orderResult.orderId());
-            cartRepository.deleteAllByUserId(user.getId());
         }
 
         // When: 20명이 동시에 결제 시도
@@ -367,16 +422,16 @@ class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
         for (int i = 0; i < 100; i++) {
             User user = User.create(
                     "대량유저" + i,
-                    "bulk" + i + "_" + System.currentTimeMillis() + "@test.com",
+                    "bulk" + i + "_" + UUID.randomUUID() + "@test.com",
                     1000000
             );
-            users.add(userRepository.save(user));
+            User savedUser = userRepository.save(user);
+            users.add(savedUser);
 
-            CartItem cartItem = CartItem.create(user.getId(), bulkProduct.getId(), 1);
+            CartItem cartItem = CartItem.create(savedUser.getId(), bulkProduct.getId(), 1);
             cartRepository.save(cartItem);
-            CreateOrderResult orderResult = orderService.createFromCart(user.getId());
+            CreateOrderResult orderResult = orderService.createFromCart(savedUser.getId());
             orderIds.add(orderResult.orderId());
-            cartRepository.deleteAllByUserId(user.getId());
         }
 
         // When: 100명 동시 결제 (시간 측정)

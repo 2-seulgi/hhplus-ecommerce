@@ -21,6 +21,7 @@ public class Order {
     private Instant refundedAt;
     private Instant createdAt;
     private Instant updatedAt;
+    private int version;
 
     private Order(Long userId, int totalAmount, Instant expiresAt) {
         this.userId = userId;
@@ -40,7 +41,7 @@ public class Order {
     private Order(Long id, Long userId, OrderStatus status, int totalAmount,
                   int finalAmount, Instant expiresAt, Instant paidAt,
                   Instant canceledAt, Instant refundedAt,
-                  Instant createdAt, Instant updatedAt) {
+                  Instant createdAt, Instant updatedAt, int version) {
         this.id = id;
         this.userId = userId;
         this.status = status;
@@ -52,21 +53,31 @@ public class Order {
         this.refundedAt = refundedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.version = version;
     }
 
     public static Order reconstruct(Long id, Long userId, OrderStatus status, int totalAmount,
                                     int finalAmount, Instant expiresAt, Instant paidAt,
                                     Instant canceledAt, Instant refundedAt,
-                                    Instant createdAt, Instant updatedAt) {
+                                    Instant createdAt, Instant updatedAt, int version) {
         return new Order(id, userId, status, totalAmount, finalAmount,
-                expiresAt, paidAt, canceledAt, refundedAt, createdAt, updatedAt);
+                expiresAt, paidAt, canceledAt, refundedAt, createdAt, updatedAt, version);
     }
 
 
     // 결제 완료( PENDING -> CONFIRMED )
     public void confirm(int finalAmount, Instant paidAt) {
+        if (this.status == OrderStatus.CONFIRMED) {
+            throw new BusinessException("이미 결제 완료된 주문입니다", "ORDER_ALREADY_PAID");
+        }
+        if (this.status == OrderStatus.CANCELLED) {
+            throw new BusinessException("취소된 주문은 결제할 수 없습니다", "ORDER_CANCELLED");
+        }
+        if (this.status == OrderStatus.REFUNDED) {
+            throw new BusinessException("환불된 주문은 결제할 수 없습니다", "ORDER_REFUNDED");
+        }
         if (this.status != OrderStatus.PENDING) {
-            throw new BusinessException("잘못된 주문 상태입니다", "INVALID_ORDER_STATUS");
+            throw new BusinessException("결제할 수 없는 주문 상태입니다: " + this.status, "INVALID_ORDER_STATUS");
         }
         this.status = OrderStatus.CONFIRMED;
         this.finalAmount = finalAmount;

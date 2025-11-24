@@ -290,6 +290,7 @@ public class OrderService {
      */
     public void confirmOrder(Order order, int finalAmount, Instant paidAt) {
         order.confirm(finalAmount, paidAt);
+        orders.save(order);  // Dirty Checking만으로는 부족할 수 있어서 명시적 save 추가
     }
 
     /**

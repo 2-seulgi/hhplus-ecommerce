@@ -11,6 +11,8 @@ spring:
     show-sql: false  # datasource-proxy가 대신 찍으므로 false
     hibernate:
       ddl-auto: update  # Flyway 제거하고 JPA로 스키마 관리
+      default-batch-fetch-size: 100
+
     properties:
       hibernate.format_sql: true
       hibernate.dialect: org.hibernate.dialect.MySQLDialect

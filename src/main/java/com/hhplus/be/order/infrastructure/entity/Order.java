@@ -1,6 +1,7 @@
 package com.hhplus.be.order.infrastructure.entity;
 
 import com.hhplus.be.order.domain.model.OrderStatus;
+import com.hhplus.be.orderitem.infrastructure.entity.OrderItem;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(
@@ -15,7 +17,6 @@ import java.time.Instant;
     indexes = {
         // 인기 상품 조회 최적화: status + paid_at 복합 인덱스
         @Index(name = "idx_order_status_paid", columnList = "status, paidAt"),
-
         // 주문 목록 조회 최적화: user_id + created_at 복합 인덱스
         @Index(name = "idx_order_user_created", columnList = "userId, createdAt")
     }
@@ -58,5 +59,11 @@ public class Order {
 
     @Column(nullable = false)
     private Instant updatedAt;
+
+    @Version
+    private int version;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<OrderItem> orderItems;
 
 }
