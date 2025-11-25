@@ -43,11 +43,16 @@ public class OrderItemImpl implements com.hhplus.be.orderitem.domain.repository.
 
     @Override
     public Map<Long, Integer> countSalesByProductSince(Instant since) {
-        return orderItemJpaRepository.countSalesByProductSince(since).stream()
+        return orderItemJpaRepository.findTopSellingProductsSince(since).stream()
                 .collect(Collectors.toMap(
                         ProductSalesResult::productId,
-                        ProductSalesResult::getTotalQuantity
+                        ProductSalesResult::getSalesCount
                 ));
+    }
+
+    @Override
+    public List<ProductSalesResult> findTopSellingProductsSince(Instant since) {
+        return orderItemJpaRepository.findTopSellingProductsSince(since);
     }
 
     @Override
