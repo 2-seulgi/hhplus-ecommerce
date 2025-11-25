@@ -59,37 +59,24 @@ public class ProductService {
      * 인기 상품 조회 (최근 N일간 CONFIRMED 주문 기준)
      * API: GET /products/top?period=3d&limit=5
      *
-     * 실제 판매량 = ORDER 테이블의 CONFIRMED 상태 주문 기준으로 집계
+     * 한 번의 조인 쿼리로 상품 정보와 판매량을 함께 조회
      */
     public TopProductResult getTopProducts(TopProductQuery query) {
         // 1. 최근 N일 계산 (기본 3일)
         int days = parsePeriod(query.period());
         Instant since = Instant.now().minus(days, ChronoUnit.DAYS);
 
-        // 2. CONFIRMED 주문의 상품별 판매량 집계
-        Map<Long, Integer> salesByProduct = orderItemRepository.countSalesByProductSince(since);
-
-        // 3. 판매량 Top N 상품 ID 추출
-        List<Long> topProductIds = salesByProduct.entrySet().stream()
-                .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
+        // 2. 한 번의 쿼리로 상품 정보 + 판매량 조회 (이미 판매량 내림차순 정렬됨)
+        List<TopProductResult.ProductItem> items = orderItemRepository
+                .findTopSellingProductsSince(since)
+                .stream()
                 .limit(query.limit())
-                .map(Map.Entry::getKey)
-                .toList();
-
-        // 4. 상품 정보 일괄 조회 (N+1 방지)
-        Map<Long, Product> productMap = productRepository.findAllById(topProductIds).stream()
-                .collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
-
-        // 5. 판매량 순서 유지하며 DTO 변환
-        List<TopProductResult.ProductItem> items = topProductIds.stream()
-                .map(productId -> {
-                    Product product = productMap.get(productId);
-                    if (product == null) {
-                        throw new ResourceNotFoundException("상품을 찾을 수 없습니다: " + productId);
-                    }
-                    int salesCount = salesByProduct.get(productId);
-                    return TopProductResult.ProductItem.from(product, salesCount);
-                })
+                .map(result -> new TopProductResult.ProductItem(
+                        result.productId(),
+                        result.name(),
+                        result.price(),
+                        result.getSalesCount()
+                ))
                 .toList();
 
         return new TopProductResult(items);
