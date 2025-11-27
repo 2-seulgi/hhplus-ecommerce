@@ -1,5 +1,6 @@
 package com.hhplus.be.usercoupon.service;
 
+import com.hhplus.be.common.annotation.DistributedLock;
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.coupon.domain.model.Coupon;
@@ -40,6 +41,7 @@ public class UserCouponService {
      *
      * 참고: 비관적 락으로 재시도 불필요
      */
+    @DistributedLock(key = "'coupon:' + #command.couponId", waitTime = 10, leaseTime = 5)
     @Transactional
     public IssueCouponResult issueCoupon(IssueCouponCommand command) {
         // 1. 사용자 존재 확인
@@ -62,7 +64,7 @@ public class UserCouponService {
                     throw new BusinessException("이미 발급받은 쿠폰입니다", "ALREADY_ISSUED");
                 });
 
-        // 5. 쿠폰 발급 수량 증가 (비관적 락으로 이미 보호됨)
+        // 5. 발급 수량 증가 (호출 전 비관적 락 획득 필요)
         coupon.increaseIssued();
         couponRepository.save(coupon);
 
