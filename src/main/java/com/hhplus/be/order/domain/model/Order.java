@@ -21,7 +21,6 @@ public class Order {
     private Instant refundedAt;
     private Instant createdAt;
     private Instant updatedAt;
-    private int version;
 
     private Order(Long userId, int totalAmount, Instant expiresAt) {
         this.userId = userId;
@@ -41,7 +40,7 @@ public class Order {
     private Order(Long id, Long userId, OrderStatus status, int totalAmount,
                   int finalAmount, Instant expiresAt, Instant paidAt,
                   Instant canceledAt, Instant refundedAt,
-                  Instant createdAt, Instant updatedAt, int version) {
+                  Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.userId = userId;
         this.status = status;
@@ -53,15 +52,14 @@ public class Order {
         this.refundedAt = refundedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.version = version;
     }
 
     public static Order reconstruct(Long id, Long userId, OrderStatus status, int totalAmount,
                                     int finalAmount, Instant expiresAt, Instant paidAt,
                                     Instant canceledAt, Instant refundedAt,
-                                    Instant createdAt, Instant updatedAt, int version) {
+                                    Instant createdAt, Instant updatedAt) {
         return new Order(id, userId, status, totalAmount, finalAmount,
-                expiresAt, paidAt, canceledAt, refundedAt, createdAt, updatedAt, version);
+                expiresAt, paidAt, canceledAt, refundedAt, createdAt, updatedAt);
     }
 
 
