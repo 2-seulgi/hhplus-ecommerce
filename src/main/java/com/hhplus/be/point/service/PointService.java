@@ -6,6 +6,7 @@ import com.hhplus.be.point.domain.model.Point;
 import com.hhplus.be.point.domain.repository.PointRepository;
 import com.hhplus.be.user.domain.model.User;
 import com.hhplus.be.user.domain.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,9 +28,10 @@ public class PointService {
      * 포인트 충전 UseCase
      * API: POST /api/points/{userId}/charge
      */
+    @Transactional
     public PointChargeResult charge(PointChargeCommand command) {
-        // 1. 사용자 조회
-        var user = userRepository.findById(command.userId())
+        // 1. 사용자 조회 (비관적락)
+        var user = userRepository.findByIdForUpdate(command.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
 
         // 2. 사용자 포인트 충전
@@ -76,8 +78,9 @@ public class PointService {
     /**
      * 포인트 차감
      */
+    @Transactional
     public User deductPoints(Long userId, int amount) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
 
         // 도메인 모델에 비즈니스 로직 위임
@@ -97,8 +100,9 @@ public class PointService {
     /**
      * 포인트 환불
      */
+    @Transactional
     public User refundPoints(Long userId, int amount) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
 
         user.refund(amount);

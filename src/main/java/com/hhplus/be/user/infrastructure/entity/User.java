@@ -28,9 +28,6 @@ public class User {
     @Column(nullable = false)
     private int balance;
 
-    @Version
-    private int version;
-
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
