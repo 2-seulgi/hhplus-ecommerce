@@ -7,7 +7,14 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:tc:mysql:8.0:///test  # 👈 TestContainer placeholder
+
     # URL/ID/PW는 Testcontainers가 override
+
+  data:
+    redis:
+      # host와 port는 Testcontainers가 override
+      timeout: 3000ms
 
   jpa:
     open-in-view: false
