@@ -6,8 +6,9 @@ import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.repository.ProductRepository;
 import com.hhplus.be.product.service.dto.*;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;  // ✅ readOnly 지원
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -60,7 +61,10 @@ public class ProductService {
      * API: GET /products/top?period=3d&limit=5
      *
      * 한 번의 조인 쿼리로 상품 정보와 판매량을 함께 조회
+     * Redis 캐시 적용 (TTL 10분)
      */
+    @Cacheable(value = "topProducts", key = "#query.period() + ':' + #query.limit()")
+    @Transactional(readOnly = true)
     public TopProductResult getTopProducts(TopProductQuery query) {
         // 1. 최근 N일 계산 (기본 3일)
         int days = parsePeriod(query.period());
