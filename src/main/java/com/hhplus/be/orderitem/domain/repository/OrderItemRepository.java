@@ -33,4 +33,6 @@ public interface OrderItemRepository {
     List<ProductSalesResult> findTopSellingProductsSince(Instant since);
 
     void deleteAll();
+
+    void deleteAllInBatch();
 }

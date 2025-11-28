@@ -19,4 +19,6 @@ public interface OrderRepository {
     List<Order> findAll();
 
     void deleteAll();
+
+    void deleteAllInBatch();
 }

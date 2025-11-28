@@ -33,7 +33,7 @@ public class UserCouponService {
      *
      * 비즈니스 규칙:
      * 1. 사용자 존재 확인
-     * 2. 쿠폰 조회 및 락 획득 (비관적 락으로 동시성 제어)
+     * 2. 쿠폰 조회  -> 비관적 락 제거
      * 3. 발급 기간 확인 (issueStartAt ~ issueEndAt)
      * 4. 중복 발급 확인 (1인 1회 제한)
      * 5. 발급 수량 확인 및 증가
@@ -41,15 +41,15 @@ public class UserCouponService {
      *
      * 참고: 비관적 락으로 재시도 불필요
      */
-    @DistributedLock(key = "'coupon:' + #command.couponId", waitTime = 10, leaseTime = 5)
+    @DistributedLock(key = "'coupon:' + #command.couponId", waitTime = 2, leaseTime = 10)
     @Transactional
     public IssueCouponResult issueCoupon(IssueCouponCommand command) {
         // 1. 사용자 존재 확인
         userRepository.findById(command.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("존재하지 않는 회원입니다"));
 
-        // 2. 쿠폰 조회 및 락 획득 (SELECT ... FOR UPDATE)
-        Coupon coupon = couponRepository.findByIdForUpdate(command.couponId())
+        // 2. 쿠폰 조회 락 제거
+        Coupon coupon = couponRepository.findById(command.couponId())
                 .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
 
         // 3. 발급 기간 확인

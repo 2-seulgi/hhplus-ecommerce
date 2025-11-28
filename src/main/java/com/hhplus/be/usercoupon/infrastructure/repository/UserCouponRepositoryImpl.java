@@ -58,4 +58,9 @@ public class UserCouponRepositoryImpl implements com.hhplus.be.usercoupon.domain
     public void deleteAll() {
         userCouponJpaRepository.deleteAll();
     }
+
+    @Override
+    public void deleteAllInBatch() {
+        userCouponJpaRepository.deleteAllInBatch();
+    }
 }

@@ -62,4 +62,8 @@ public class CartItemRepositoryImpl implements CartRepository {
         cartItemJpaRepository.deleteAll();
     }
 
+    @Override
+    public void deleteAllInBatch() {
+        cartItemJpaRepository.deleteAllInBatch();
+    }
 }

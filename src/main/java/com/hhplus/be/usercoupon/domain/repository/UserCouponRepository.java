@@ -14,4 +14,7 @@ public interface UserCouponRepository {
     List<UserCoupon> findAll();
 
     void deleteAll();
+
+    void deleteAllInBatch();
+
 }

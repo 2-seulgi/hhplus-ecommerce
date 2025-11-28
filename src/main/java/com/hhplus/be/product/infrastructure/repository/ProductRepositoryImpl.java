@@ -57,4 +57,9 @@ public class ProductRepositoryImpl implements com.hhplus.be.product.domain.repos
     public void deleteAll() {
         productJpaRepository.deleteAll();
     }
+
+    @Override
+    public void deleteAllInBatch() {
+        productJpaRepository.deleteAllInBatch();
+    }
 }
