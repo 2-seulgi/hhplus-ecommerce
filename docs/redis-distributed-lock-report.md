@@ -142,36 +142,43 @@ public PaymentResult execute(PaymentCommand command) {
 
 ```java
 @DistributedLock(key = "'coupon:' + #command.couponId",
-                 waitTime = 10, leaseTime = 5)
+                 waitTime = 2, leaseTime = 10)
 @Transactional
 public IssueCouponResult issueCoupon(IssueCouponCommand command) {
-    // 1. 쿠폰 조회 (비관적 락: SELECT FOR UPDATE)
-    Coupon coupon = couponRepository.findByIdForUpdate(couponId);
+    // 1. 쿠폰 조회 (일반 SELECT - 비관적 락 제거)
+    Coupon coupon = couponRepository.findById(couponId);
 
     // 2. 발급 기간 확인
     // 3. 중복 발급 확인
-    // 4. 발급 수량 증가 (호출 전 비관적 락 획득 필요)
+    // 4. 발급 수량 증가
     coupon.increaseIssued();
 
     // 5. UserCoupon 생성 (UNIQUE 제약)
     userCouponRepository.save(userCoupon);
 }
 ```
-여기서 사용한 보호 장치는 세 가지다.
-1. **분산락 (coupon:{couponId})**: 여러 서버에서 동시에 동일 쿠폰 발급 시도를 직렬화
-2. **비관적 락 (SELECT FOR UPDATE)**: 동일 쿠폰 엔티티에 대한 동시 수정 방지
-3. **UNIQUE 제약**: 동일 유저가 동일 쿠폰을 중복 발급받지 못하도록 DB 차원에서 보장
 
-솔직히 “이 정도까지 할 필요가 있을까?” 라는 고민이 들기도 했다.
-다만, 쿠폰은 곧바로 비용으로 이어지는 영역이라 “한 번 더 막을 수 있으면 막자”쪽으로 접근했다.
+**⚠️ 설계 변경: 비관적 락 제거**
+
+초기에는 분산 락 + 비관적 락을 함께 사용했으나, **이중 락의 문제점**을 발견했다:
+- 분산 락으로 이미 순차 처리가 보장되는데, 비관적 락을 중복 적용하면 불필요한 오버헤드
+- waitTime이 길어져 성능 저하 (30초 → 2초로 개선)
+- DB 락 대기로 인한 데드락 위험 증가
+
+**최종 보호 장치 (2단계):**
+1. **분산락 (coupon:{couponId})**: 여러 서버에서 동시에 동일 쿠폰 발급 시도를 직렬화
+2. **UNIQUE 제약**: 동일 유저가 동일 쿠폰을 중복 발급받지 못하도록 DB 차원에서 보장
+
+**트레이드오프:**
+- ✅ **성능 개선**: waitTime 30초 → 2초, leaseTime 20초 → 10초
+- ✅ **락 단순화**: 분산 락만으로 충분한 동시성 제어
+- ⚠️ **Redis 의존도 증가**: 분산 락에 더 의존하게 됨
 
 실제 적용하면서 느낀 건,
-- 분산락은 여러 서버 환경에서의 동시성 초반 걸러내기,
-- 비관적 락은 같은 쿠폰 레코드에 대한 DB 수준의 직렬화,
-- UNIQUE 제약은 코드 레벨 로직이 실수해도 마지막 방어선 역할을 해 준다는 점이었다.
+- 분산락은 여러 서버 환경에서의 동시성을 초반에 걸러낸다
+- UNIQUE 제약은 코드 레벨 로직이 실수해도 마지막 방어선 역할을 해 준다
 
-실무라면 서비스 성격에 따라 분산락 또는 비관적 락 중 하나만 선택해도 충분할 수 있는데,
-이번 과제에서는 “동시성 과제”라는 점을 감안해서 일부러 강하게 조합해봤다.
+결론적으로, **분산 락 하나로 충분히 동시성을 제어**할 수 있었고, 성능도 개선되었다. 
 
 ---
 
