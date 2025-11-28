@@ -38,4 +38,9 @@ public class UserRepositoryImpl implements UserRepository {
         userJpaRepository.deleteAll();
     }
 
+    @Override
+    public void deleteAllInBatch() {
+        userJpaRepository.deleteAllInBatch();
+    }
+
 }

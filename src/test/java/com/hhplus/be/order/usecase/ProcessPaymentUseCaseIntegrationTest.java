@@ -86,19 +86,23 @@ class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
     @Autowired
     private Clock clock;
 
+    @Autowired
+    private javax.sql.DataSource dataSource;
+
+
     private User testUser;
     private Product testProduct;
 
     @BeforeEach
     void setUp() {
-        orderItemRepository.deleteAll();
-        orderRepository.deleteAll();
-        cartRepository.deleteAll();
-        pointRepository.deleteAll();
-        userCouponRepository.deleteAll();
-        couponRepository.deleteAll();
-        productRepository.deleteAll();
-        userRepository.deleteAll();
+        orderItemRepository.deleteAllInBatch();
+        orderRepository.deleteAllInBatch();
+        cartRepository.deleteAllInBatch();
+        pointRepository.deleteAllInBatch();
+        userCouponRepository.deleteAllInBatch();
+        couponRepository.deleteAllInBatch();
+        productRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
 
         // 테스트 유저 생성 (잔액 100만원)
         testUser = User.create(
