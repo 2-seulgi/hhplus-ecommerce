@@ -6,6 +6,7 @@ import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
 import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.repository.ProductRepository;
 import com.hhplus.be.product.service.dto.*;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;  // ✅ readOnly 지원
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
@@ -109,34 +110,25 @@ public class ProductService {
      * 데드락 방지를 위해 productId 오름차순으로 정렬하여 락 획득
      * 예: [3,1,5] → [1,3,5] 순서로 락 획득
      */
-    @Transactional
-    public void decreaseStocks(List<OrderItem> orderItems) {
-        // 데드락 방지: productId 오름차순 정렬
-        List<OrderItem> sortedItems = orderItems.stream()
-                .sorted(Comparator.comparing(OrderItem::getProductId))
-                .toList();
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void decreaseStock(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
 
-        for (OrderItem orderItem : sortedItems) {
-            // Pessimistic Lock으로 조회 (SELECT ... FOR UPDATE)
-            Product product = productRepository.findByIdForUpdate(orderItem.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
-            product.decreaseStock(orderItem.getQuantity());
-            productRepository.save(product);  // 변경사항 저장
-        }
+        product.decreaseStock(quantity);
+        productRepository.save(product);
     }
 
     /**
-     * 여러 상품의 재고 일괄 복원 (UseCase용)
+     * 개별 상품 재고 복원 (분산락 내에서만 호출)
      */
-    public void increaseStocks(List<OrderItem> orderItems) {
-        for (OrderItem item : orderItems) {
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void increaseStock(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
 
-            product.increaseStock(item.getQuantity());
-            productRepository.save(product);  // 변경사항 저장
-        }
+        product.increaseStock(quantity);
+        productRepository.save(product);
     }
-
 
 }
