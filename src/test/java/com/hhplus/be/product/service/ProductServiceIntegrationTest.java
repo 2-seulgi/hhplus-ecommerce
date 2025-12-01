@@ -44,6 +44,9 @@ class ProductServiceIntegrationTest extends IntegrationTestSupport {
     private ProductService productService;
 
     @Autowired
+    private ProductStockService productStockService;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
@@ -356,7 +359,7 @@ class ProductServiceIntegrationTest extends IntegrationTestSupport {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    productService.decreaseStocks(List.of(
+                    productStockService.decreaseStocksWithLock(List.of(
                             OrderItem.create(0L, productId, "테스트", 5000, 1)
                     ));
                     successCount.incrementAndGet();
@@ -408,7 +411,7 @@ class ProductServiceIntegrationTest extends IntegrationTestSupport {
             // 정순 주문
             executorService.submit(() -> {
                 try {
-                    productService.decreaseStocks(orderItems1);
+                    productStockService.decreaseStocksWithLock(orderItems1);
                 } finally {
                     latch.countDown();
                 }
@@ -416,7 +419,7 @@ class ProductServiceIntegrationTest extends IntegrationTestSupport {
             // 역순 주문
             executorService.submit(() -> {
                 try {
-                    productService.decreaseStocks(orderItems2);
+                    productStockService.decreaseStocksWithLock(orderItems2);
                 } finally {
                     latch.countDown();
                 }

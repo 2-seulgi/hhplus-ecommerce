@@ -95,7 +95,7 @@ public class OrderService {
 
         // 4) 주문 저장( orderId 확보 )
         Instant now = Instant.now(clock);
-        Order pending = Order.create(userId, totalAmount, now.plus(EXPIRE_MINUTES, ChronoUnit.MINUTES));
+        Order pending = Order.create(userId, totalAmount, now);
         Order saved = orders.save(pending); // 인메모리면 여기서 assignId 수행
 
         // 5) 주문항목 생성(스냅샷) 후 일괄 저장
