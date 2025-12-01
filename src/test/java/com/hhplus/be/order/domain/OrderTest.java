@@ -85,14 +85,19 @@ class OrderTest {
         Instant now = Instant.now(fixed);
 
         // given
-        Instant expiredAt = now.minus(Duration.ofMinutes(1));   //  과거 → 만료
-        Order expiredOrder = Order.create(1L, 30000, expiredAt);
+        // Order.create(userId, totalAmount, createdAt)
+        // expiresAt은 자동으로 createdAt + 30분으로 계산됨
 
-        Instant validAt = now.plus(Duration.ofMinutes(30));     //  미래 → 유효
-        Order validOrder = Order.create(1L, 30000, validAt);
+        // 과거에 생성된 주문 (31분 전 생성 → expiresAt = 1분 전 → 만료)
+        Instant past = now.minus(Duration.ofMinutes(31));
+        Order expiredOrder = Order.create(1L, 30000, past);
 
-        // 경계값: now == expiresAt → 만료로 간주
-        Order boundaryOrder = Order.create(1L, 30000, now);
+        // 현재 생성된 주문 (expiresAt = now + 30분 → 유효)
+        Order validOrder = Order.create(1L, 30000, now);
+
+        // 경계값: 30분 전에 생성 (expiresAt = now → 만료)
+        Instant boundary = now.minus(Duration.ofMinutes(30));
+        Order boundaryOrder = Order.create(1L, 30000, boundary);
 
         // when & then
         assertThat(expiredOrder.isExpired(now)).isTrue();
