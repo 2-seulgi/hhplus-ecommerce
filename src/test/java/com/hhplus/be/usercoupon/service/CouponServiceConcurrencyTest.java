@@ -62,9 +62,9 @@ class CouponServiceConcurrencyTest extends IntegrationTestSupport {
         redissonClient.getKeys().flushdb();
 
         // DB 클린업
-        userCouponRepository.deleteAll();
-        couponRepository.deleteAll();
-        userRepository.deleteAll();
+        userCouponRepository.deleteAllInBatch();
+        couponRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
     }
 
     @Test

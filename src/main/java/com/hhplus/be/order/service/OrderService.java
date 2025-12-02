@@ -201,7 +201,7 @@ public class OrderService {
         List<OrderItem> items = orderItems.findByOrderId(command.orderId());
 
         // 3. 포인트 환불
-        User user = users.findById(command.userId())
+        User user = users.findByIdForUpdate(command.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
 
         int refundAmount = order.getFinalAmount();
