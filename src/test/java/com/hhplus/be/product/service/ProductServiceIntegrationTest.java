@@ -66,10 +66,12 @@ class ProductServiceIntegrationTest extends IntegrationTestSupport {
     @BeforeEach
     void setUp() {
         // 1) 기존 데이터 전부 삭제
-        orderItemRepository.deleteAll();
-        orderRepository.deleteAll();
-        productRepository.deleteAll();
-        userRepository.deleteAll();
+        // Testcontainers는 create-drop이므로 스키마가 매번 재생성됨
+        // deleteAll() 대신 deleteAllInBatch() 사용 (SELECT 없이 DELETE만 실행)
+        orderItemRepository.deleteAllInBatch();
+        orderRepository.deleteAllInBatch();
+        productRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
 
         // 테스트 유저 생성
         testUser = User.create(
