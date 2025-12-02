@@ -195,13 +195,34 @@ public class OrderService {
 
 ## 🚀 실행 방법
 
-### 빌드 및 테스트
+### 1. 로컬 개발 환경 설정
+
+#### Docker Compose로 MySQL + Redis 실행
+
+```bash
+# 시작
+docker-compose up -d
+
+# 상태 확인
+docker-compose ps
+
+# 로그 확인
+docker-compose logs -f
+
+# 종료
+docker-compose down
+
+# 볼륨까지 삭제 (데이터 초기화)
+docker-compose down -v
+```
+
+### 2. 빌드 및 테스트
 
 ```bash
 # 빌드
 ./gradlew build
 
-# 테스트 실행
+# 테스트 실행 (Testcontainers 자동 시작)
 ./gradlew test
 
 # 커버리지 리포트 생성
@@ -211,13 +232,22 @@ public class OrderService {
 open build/reports/jacoco/test/html/index.html
 ```
 
-### 애플리케이션 실행
+**테스트 환경:**
+- MySQL 8.0 컨테이너 자동 생성 (Testcontainers)
+- Redis 7 컨테이너 자동 생성 (Testcontainers)
+- 각 테스트마다 격리된 환경에서 실행
+
+### 3. 애플리케이션 실행
 
 ```bash
 ./gradlew bootRun
 ```
 
 서버가 `http://localhost:8080`에서 실행됩니다.
+
+**필수 조건:**
+- Docker Compose로 MySQL + Redis 실행 중이어야 함
+- `application.yml`에서 `localhost:3306`, `localhost:6379` 연결
 
 ## 📝 API 명세
 
@@ -296,9 +326,13 @@ open build/reports/jacoco/test/html/index.html
 
 - **Language**: Java 17
 - **Framework**: Spring Boot 3.5.7
+- **Database**: MySQL 8.0
+- **Cache**: Redis 7
+- **Distributed Lock**: Redisson 3.24.3
 - **Build Tool**: Gradle
-- **Test**: JUnit 5, Mockito, AssertJ
+- **Test**: JUnit 5, Mockito, AssertJ, Testcontainers
 - **Coverage**: JaCoCo
+- **Infra**: Docker Compose
 
 ## 🤔 회고
 

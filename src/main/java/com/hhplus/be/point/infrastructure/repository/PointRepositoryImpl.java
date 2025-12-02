@@ -37,4 +37,9 @@ public class PointRepositoryImpl implements com.hhplus.be.point.domain.repositor
     public void deleteAll() {
         pointJpaRepository.deleteAll();
     }
+
+    @Override
+    public void deleteAllInBatch() {
+        pointJpaRepository.deleteAllInBatch();
+    }
 }

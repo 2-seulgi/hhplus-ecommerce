@@ -45,4 +45,9 @@ public class OrderRepositoryImpl implements com.hhplus.be.order.domain.repositor
     public void deleteAll() {
         orderJpaRepository.deleteAll();
     }
+
+    @Override
+    public void deleteAllInBatch() {
+        orderJpaRepository.deleteAllInBatch();
+    }
 }

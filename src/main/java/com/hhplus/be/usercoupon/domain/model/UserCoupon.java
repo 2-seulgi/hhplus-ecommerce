@@ -53,4 +53,13 @@ public class UserCoupon {
         this.used = true;
         this.usedAt = Instant.now();
     }
+
+    /**
+     * 쿠폰 사용 취소 (보상 트랜잭션용)
+     * 결제 실패 시 쿠폰을 다시 사용 가능 상태로 복원
+     */
+    public void restore() {
+        this.used = false;
+        this.usedAt = null;
+    }
 }

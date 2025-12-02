@@ -15,7 +15,6 @@ public class User {
     private String name;
     private String email;
     private int balance;
-    private int version;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -23,7 +22,6 @@ public class User {
         this.name = name;
         this.email = email;
         this.balance = balance;
-        this.version = 0;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -41,8 +39,8 @@ public class User {
     }
 
     public static User reconstruct(Long id, String name, String email, int balance,
-                                   int version, Instant createdAt, Instant updatedAt) {
-        return new User(id, name, email, balance, version, createdAt, updatedAt);
+                                 Instant createdAt, Instant updatedAt) {
+        return new User(id, name, email, balance, createdAt, updatedAt);
     }
 
     public void charge(int amount) {

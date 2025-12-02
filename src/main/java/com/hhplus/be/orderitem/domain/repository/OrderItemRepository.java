@@ -1,6 +1,7 @@
 package com.hhplus.be.orderitem.domain.repository;
 
 import com.hhplus.be.orderitem.domain.model.OrderItem;
+import com.hhplus.be.orderitem.infrastructure.repository.ProductSalesResult;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,5 +26,13 @@ public interface OrderItemRepository {
      */
     Map<Long, Integer> countSalesByProductSince(Instant since);
 
+    /**
+     * 최근 N일간 인기 상품 조회 (상품 정보 포함)
+     * 한 번의 조인 쿼리로 상품 정보와 판매량을 함께 조회
+     */
+    List<ProductSalesResult> findTopSellingProductsSince(Instant since);
+
     void deleteAll();
+
+    void deleteAllInBatch();
 }

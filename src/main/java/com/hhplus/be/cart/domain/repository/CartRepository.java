@@ -38,5 +38,8 @@ public interface CartRepository {
     void deleteAllByUserId(Long userId);
 
     void deleteAll();
+
+    void deleteAllInBatch();
+
 }
 

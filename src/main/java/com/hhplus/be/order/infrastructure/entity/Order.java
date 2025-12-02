@@ -60,9 +60,6 @@ public class Order {
     @Column(nullable = false)
     private Instant updatedAt;
 
-    @Version
-    private int version;
-
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems;
 

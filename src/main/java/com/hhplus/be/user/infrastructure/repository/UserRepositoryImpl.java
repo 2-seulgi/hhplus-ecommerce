@@ -1,6 +1,7 @@
 package com.hhplus.be.user.infrastructure.repository;
 
 import com.hhplus.be.user.domain.model.User;
+import com.hhplus.be.user.domain.repository.UserRepository;
 import com.hhplus.be.user.infrastructure.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -9,13 +10,19 @@ import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
-public class UserRepositoryImpl implements com.hhplus.be.user.domain.repository.UserRepository {
+public class UserRepositoryImpl implements UserRepository {
     private final UserJpaRepository userJpaRepository;
     private final UserMapper userMapper;
 
     @Override
     public Optional<User> findById(Long id) {
         return userJpaRepository.findById(id)
+                .map(userMapper::toDomain);
+    }
+
+    @Override
+    public Optional<User> findByIdForUpdate(Long id) {
+        return userJpaRepository.findByIdForUpdate(id)
                 .map(userMapper::toDomain);
     }
 
@@ -29,6 +36,11 @@ public class UserRepositoryImpl implements com.hhplus.be.user.domain.repository.
     @Override
     public void deleteAll() {
         userJpaRepository.deleteAll();
+    }
+
+    @Override
+    public void deleteAllInBatch() {
+        userJpaRepository.deleteAllInBatch();
     }
 
 }

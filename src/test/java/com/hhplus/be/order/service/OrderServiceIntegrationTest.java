@@ -62,9 +62,9 @@ class OrderServiceIntegrationTest extends IntegrationTestSupport {
     @BeforeEach
     void setUp() {
         // 테스트 데이터 정리 (이전 테스트의 잔여 데이터 제거)
-        cartRepository.deleteAll();
-        orderItemRepository.deleteAll();
-        orderRepository.deleteAll();
+        cartRepository.deleteAllInBatch();
+        orderItemRepository.deleteAllInBatch();
+        orderRepository.deleteAllInBatch();
 
         // 테스트 유저 생성
         testUser = User.create(
