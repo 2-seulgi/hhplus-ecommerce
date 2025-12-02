@@ -67,6 +67,17 @@ public class CouponService {
     }
 
     /**
+     * 쿠폰 사용 취소 (보상 트랜잭션용)
+     * 결제 실패 시 쿠폰을 다시 사용 가능 상태로 복원
+     */
+    public void restoreCoupon(Long userCouponId) {
+        UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
+                .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
+        userCoupon.restore();
+        userCouponRepository.save(userCoupon);
+    }
+
+    /**
      * 할인 금액 계산
      */
     private int calculateDiscount(Coupon coupon, int orderAmount) {

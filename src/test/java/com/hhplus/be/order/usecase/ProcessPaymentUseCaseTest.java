@@ -9,7 +9,7 @@ import com.hhplus.be.order.service.dto.PaymentCommand;
 import com.hhplus.be.order.service.dto.PaymentResult;
 import com.hhplus.be.orderitem.domain.model.OrderItem;
 import com.hhplus.be.point.service.PointService;
-import com.hhplus.be.product.service.ProductService;
+import com.hhplus.be.product.service.ProductStockService;
 import com.hhplus.be.user.domain.model.User;
 import com.hhplus.be.coupon.service.CouponService;
 import com.hhplus.be.coupon.service.dto.DiscountCalculationResult;
@@ -36,7 +36,7 @@ class ProcessPaymentUseCaseTest {
 
     @Mock private OrderService orderService;
     @Mock private CouponService couponService;
-    @Mock private ProductService productService;
+    @Mock private ProductStockService productStockService;
     @Mock private PointService pointService;
 
     private ProcessPaymentUseCase processPaymentUseCase;
@@ -51,7 +51,7 @@ class ProcessPaymentUseCaseTest {
         processPaymentUseCase = new ProcessPaymentUseCase(
                 orderService,
                 couponService,
-                productService,
+                productStockService,
                 pointService,
                 clock
         );
@@ -108,7 +108,7 @@ class ProcessPaymentUseCaseTest {
         verify(orderService).validateForPayment(userId, orderId, fixedNow);
         verify(orderService).getOrderItems(orderId);
         verify(couponService).validateAndCalculateDiscount(any(ValidateDiscountCommand.class));
-        verify(productService).decreaseStocks(items);
+        verify(productStockService).decreaseStocksWithLock(items);
         verify(pointService).deductPoints(userId, totalAmount);
         verify(orderService).confirmOrder(order, totalAmount, fixedNow);
         verify(orderService).saveDiscountInfo(eq(orderId), any(DiscountCalculation.class));
@@ -185,7 +185,7 @@ class ProcessPaymentUseCaseTest {
                 .hasMessageContaining("만료");
 
         verify(orderService).validateForPayment(userId, orderId, fixedNow);
-        verifyNoInteractions(couponService, productService, pointService);
+        verifyNoInteractions(couponService, productStockService, pointService);
     }
 
     @Test
@@ -214,7 +214,7 @@ class ProcessPaymentUseCaseTest {
 
         verify(orderService).validateForPayment(userId, orderId, fixedNow);
         verify(couponService).validateAndCalculateDiscount(any(ValidateDiscountCommand.class));
-        verifyNoInteractions(productService, pointService);
+        verifyNoInteractions(productStockService, pointService);
     }
 
     @Test
@@ -246,8 +246,10 @@ class ProcessPaymentUseCaseTest {
                 .isInstanceOf(InsufficientBalanceException.class)
                 .hasMessageContaining("부족");
 
-        verify(productService).decreaseStocks(items);
+        verify(productStockService).decreaseStocksWithLock(items);
         verify(pointService).deductPoints(userId, totalAmount);
+        // 보상 트랜잭션으로 재고 복원도 호출됨
+        verify(productStockService).increaseStocksWithLock(items);
         verify(orderService, never()).confirmOrder(any(), anyInt(), any());
     }
 
@@ -273,14 +275,14 @@ class ProcessPaymentUseCaseTest {
         when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
                 .thenReturn(DiscountCalculationResult.noDiscount());
         doThrow(new BusinessException("재고 부족", "OUT_OF_STOCK"))
-                .when(productService).decreaseStocks(items);
+                .when(productStockService).decreaseStocksWithLock(items);
 
         // When & Then
         assertThatThrownBy(() -> processPaymentUseCase.execute(command))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("재고");
 
-        verify(productService).decreaseStocks(items);
+        verify(productStockService).decreaseStocksWithLock(items);
         verifyNoInteractions(pointService);
         verify(orderService, never()).confirmOrder(any(), anyInt(), any());
     }

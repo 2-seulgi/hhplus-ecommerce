@@ -15,16 +15,19 @@ public interface OrderItemJpaRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findByOrderIdIn(List<Long> orderIds);
 
     @Query("""
-        SELECT ProductSalesResult(
+        SELECT new com.hhplus.be.orderitem.infrastructure.repository.ProductSalesResult(
             oi.productId,
-            oi.productName,
+            p.name,
+            p.price,
             SUM(oi.quantity)
         )
         FROM OrderItem oi
         JOIN Order o ON oi.orderId = o.id
+        JOIN Product p ON oi.productId = p.id
         WHERE o.status = 'CONFIRMED'
         AND o.paidAt >= :since
-        GROUP BY oi.productId
-    """)
-    List<ProductSalesResult> countSalesByProductSince(@Param("since") Instant since);
+        GROUP BY oi.productId, p.name, p.price
+        ORDER BY SUM(oi.quantity) DESC
+        """)
+    List<ProductSalesResult> findTopSellingProductsSince(@Param("since") Instant since);
 }

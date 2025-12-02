@@ -2,6 +2,7 @@ package com.hhplus.be.product.service;
 
 import com.hhplus.be.common.exception.ResourceNotFoundException;
 import com.hhplus.be.orderitem.domain.repository.OrderItemRepository;
+import com.hhplus.be.orderitem.infrastructure.repository.ProductSalesResult;
 import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.model.StockStatus;
 import com.hhplus.be.product.domain.repository.ProductRepository;
@@ -183,21 +184,16 @@ class ProductServiceTest {
     @DisplayName("3일간 판매량 상위 5개만, 판매량 내림차순으로 반환한다 (period=3d, limit=5)")
     void getTopProducts_top5_desc_simple() {
         // given
-        var salesMap = java.util.Map.of(
-                1L, 10, 2L, 20, 3L, 30, 4L, 40, 5L, 50,
-                6L, 60, 7L, 70, 8L, 80, 9L, 90, 10L, 100
+        var salesResults = java.util.List.of(
+                new ProductSalesResult(10L, "P10", 10000, 100L),
+                new ProductSalesResult(9L, "P9", 9000, 90L),
+                new ProductSalesResult(8L, "P8", 8000, 80L),
+                new ProductSalesResult(7L, "P7", 7000, 70L),
+                new ProductSalesResult(6L, "P6", 6000, 60L),
+                new ProductSalesResult(5L, "P5", 5000, 50L)
         );
-        given(orderItemRepository.countSalesByProductSince(any()))
-                .willReturn(salesMap);
-
-        // 상위 5개에 대해서만 Product 일괄 조회 스텁
-        given(productRepository.findAllById(any())).willReturn(java.util.List.of(
-                createProductWithId(10L, "P10", 10000),
-                createProductWithId(9L, "P9", 9000),
-                createProductWithId(8L, "P8", 8000),
-                createProductWithId(7L, "P7", 7000),
-                createProductWithId(6L, "P6", 6000)
-        ));
+        given(orderItemRepository.findTopSellingProductsSince(any()))
+                .willReturn(salesResults);
 
         var query = new TopProductQuery("3d", 5);
 

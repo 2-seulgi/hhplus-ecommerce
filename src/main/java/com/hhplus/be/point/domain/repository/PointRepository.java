@@ -11,4 +11,7 @@ public interface PointRepository {
     List<Point> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     void deleteAll();
+
+    void deleteAllInBatch();
+
 }

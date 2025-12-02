@@ -31,4 +31,16 @@ class TestcontainersSmokeTest extends IntegrationTestSupport {
             assertThat(url).contains("jdbc:mysql://");
         }
     }
+
+    @Test
+    @DisplayName("Testcontainers MySQL 컨테이너와 DataSource URL 비교")
+    void compareUrls() throws Exception {
+        System.out.println("### MYSQL_CONTAINER JDBC URL = " + MYSQL_CONTAINER.getJdbcUrl());
+
+        try (Connection conn = dataSource.getConnection()) {
+            String url = conn.getMetaData().getURL();
+            System.out.println("### DATASOURCE JDBC URL     = " + url);
+        }
+    }
+
 }

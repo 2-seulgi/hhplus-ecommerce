@@ -15,7 +15,6 @@ public class UserMapper {
                 entity.getName(),
                 entity.getEmail(),
                 entity.getBalance(),
-                entity.getVersion(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -33,7 +32,6 @@ public class UserMapper {
                 domain.getName(),
                 domain.getEmail(),
                 domain.getBalance(),
-                domain.getVersion(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt()
         );

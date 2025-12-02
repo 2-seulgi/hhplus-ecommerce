@@ -38,7 +38,8 @@ class PointServiceTest {
     void chargePoint() {
         // given
         User user = User.create(1L, "홍길동", "hong@example.com", 10000);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForUpdate(1L))
+                .thenReturn(Optional.of(user));
 
         // when
         PointChargeCommand command = new PointChargeCommand(1L, 5000);
@@ -55,7 +56,7 @@ class PointServiceTest {
         assertThat(result.createdAt()).isNotNull();
 
         // then: 호출 검증
-        verify(userRepository).findById(1L);
+        verify(userRepository).findByIdForUpdate(1L);
         verify(userRepository).save(user);
 
         ArgumentCaptor<Point> pointCaptor = ArgumentCaptor.forClass(Point.class);
@@ -74,7 +75,7 @@ class PointServiceTest {
     @DisplayName("포인트 충전 실패 - 존재하지 않는 사용자")
     void chargePointFailWhenUserNotFound() {
         // given
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         // when & then
         PointChargeCommand command = new PointChargeCommand(999L, 5000);
