@@ -3,6 +3,7 @@ package com.hhplus.be.order.usecase;
 import com.hhplus.be.common.exception.BusinessException;
 import com.hhplus.be.common.exception.LockAcquisitionException;
 import com.hhplus.be.coupon.service.dto.ValidateDiscountCommand;
+import com.hhplus.be.order.domain.event.OrderConfirmedEvent;
 import com.hhplus.be.order.domain.model.Order;
 import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.PaymentCommand;
@@ -15,6 +16,7 @@ import com.hhplus.be.coupon.service.CouponService;
 import com.hhplus.be.usercoupon.service.dto.DiscountCalculation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class ProcessPaymentUseCase {
     private final ProductStockService productStockService;
     private final PointService pointService;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 결제 처리 - 여러 도메인 서비스를 조율
@@ -101,6 +104,9 @@ public class ProcessPaymentUseCase {
 
             // 9. 포인트 히스토리 기록 (Point 도메인)
             pointService.recordUseHistory(command.userId(), finalAmount, user.getBalance());
+
+            // 10. 주문 완료 이벤트 발행 (비동기 랭킹 업데이트용)
+            publishOrderConfirmedEvent(order.getId(), command.userId(), items, now);
 
             return PaymentResult.from(order, user, discount.discountAmount());
 
@@ -185,5 +191,46 @@ public class ProcessPaymentUseCase {
                 userId, e);
             // TODO: 실무에서는 즉시 알람, 별도 복구 프로세스 실행
         }
+    }
+
+    /**
+     * 주문 완료 이벤트 발행
+     *
+     * 비동기 랭킹 업데이트를 위한 이벤트 발행
+     * - @TransactionalEventListener(AFTER_COMMIT)로 트랜잭션 커밋 후 실행됨
+     * - @Async로 별도 스레드에서 처리되어 주문 응답 속도에 영향 없음
+     *
+     * @param orderId 주문 ID
+     * @param userId 사용자 ID
+     * @param items 주문 항목 리스트
+     * @param confirmedAt 주문 확정 시간
+     */
+    private void publishOrderConfirmedEvent(
+            Long orderId,
+            Long userId,
+            List<OrderItem> items,
+            Instant confirmedAt) {
+
+        // OrderItem -> OrderItemInfo 변환
+        List<OrderConfirmedEvent.OrderItemInfo> orderItemInfos = items.stream()
+                .map(item -> new OrderConfirmedEvent.OrderItemInfo(
+                        item.getProductId(),
+                        item.getProductName(),
+                        item.getQuantity()
+                ))
+                .toList();
+
+        // 이벤트 생성 및 발행
+        OrderConfirmedEvent event = new OrderConfirmedEvent(
+                orderId,
+                userId,
+                orderItemInfos,
+                confirmedAt
+        );
+
+        eventPublisher.publishEvent(event);
+
+        log.info("주문 완료 이벤트 발행 - orderId: {}, userId: {}, items: {}",
+                orderId, userId, orderItemInfos.size());
     }
 }

@@ -14,6 +14,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +28,10 @@ class ProductServiceTest {
 
     @Mock
     private ProductRepository productRepository;
-    @Mock OrderItemRepository orderItemRepository;
+    @Mock
+    private OrderItemRepository orderItemRepository;
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private ProductService productService;
@@ -184,7 +189,9 @@ class ProductServiceTest {
     @DisplayName("3일간 판매량 상위 5개만, 판매량 내림차순으로 반환한다 (period=3d, limit=5)")
     void getTopProducts_top5_desc_simple() {
         // given
-        var salesResults = java.util.List.of(
+        given(clock.instant()).willReturn(Instant.parse("2025-12-03T00:00:00Z"));
+
+        var salesResults = List.of(
                 new ProductSalesResult(10L, "P10", 10000, 100L),
                 new ProductSalesResult(9L, "P9", 9000, 90L),
                 new ProductSalesResult(8L, "P8", 8000, 80L),
@@ -213,7 +220,7 @@ class ProductServiceTest {
 
     private Product createProductWithId(Long id, String name, int price) {
         return Product.reconstruct(id, name, "설명", price, 100, 0,
-                java.time.Instant.now(), java.time.Instant.now());
+                Instant.now(),Instant.now());
     }
 
     private void assignProductId(Product product, Long id) {
