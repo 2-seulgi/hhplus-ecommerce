@@ -32,3 +32,9 @@ spring:
 logging:
   level:
     p6spy: DEBUG
+
+# 쿠폰 발급 큐 설정
+coupon:
+  stream:
+    consumer-group: coupon-consumer-group  # Redis Stream Consumer Group 이름
+    consumer-name: consumer-1               # Consumer 인스턴스 이름 (수평 확장 시 변경 해야함)
