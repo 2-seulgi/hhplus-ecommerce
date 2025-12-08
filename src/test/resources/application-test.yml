@@ -31,3 +31,9 @@ logging:
     p6spy: DEBUG
     org.hibernate.stat: OFF
 
+# 쿠폰 발급 큐 설정
+coupon:
+  stream:
+    consumer-group: coupon-consumer-group-test
+    consumer-name: consumer-test-1
+

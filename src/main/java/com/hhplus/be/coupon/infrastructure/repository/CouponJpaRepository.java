@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface CouponJpaRepository extends JpaRepository<Coupon, Long> {
@@ -15,4 +17,11 @@ public interface CouponJpaRepository extends JpaRepository<Coupon, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM Coupon c WHERE c.id = :id")
     Optional<Coupon> findByIdForUpdate(@Param("id") Long id);
+
+    /**
+     * 발급 기간 중인 쿠폰 조회
+     * issueStartAt <= now <= issueEndAt
+     */
+    @Query("SELECT c FROM Coupon c WHERE c.issueStartAt <= :now AND c.issueEndAt >= :now")
+    List<Coupon> findAllByIssuePeriod(@Param("now") Instant now);
 }
