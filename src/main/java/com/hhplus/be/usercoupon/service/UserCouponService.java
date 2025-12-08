@@ -17,6 +17,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 
@@ -27,6 +28,7 @@ public class UserCouponService {
     private final UserRepository userRepository;
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
+    private final Clock clock;
 
     /**
      * 쿠폰 발급
@@ -53,7 +55,7 @@ public class UserCouponService {
                 .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
 
         // 3. 발급 기간 확인
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         if (now.isBefore(coupon.getIssueStartAt()) || now.isAfter(coupon.getIssueEndAt())) {
             throw new BusinessException("쿠폰 발급 기간이 아닙니다", "ISSUE_PERIOD_EXPIRED");
         }
@@ -99,7 +101,7 @@ public class UserCouponService {
         // 2. 사용자의 쿠폰 조회
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(query.userId());
 
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
         // 3. 각 UserCoupon에 대해 Coupon 정보 조합 및 필터링
         List<GetUserCouponsResult.UserCouponInfo> couponInfos = userCoupons.stream()

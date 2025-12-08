@@ -14,9 +14,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
+
+import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -44,6 +44,9 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
     @Autowired
     private UserCouponRepository userCouponRepository;
 
+    @Autowired
+    private Clock clock;
+
     private User testUser;
     private List<Coupon> testCoupons;
 
@@ -59,7 +62,7 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
 
         // 테스트 쿠폰 10개 생성
         testCoupons = new ArrayList<>();
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         for (int i = 1; i <= 10; i++) {
             Coupon coupon = Coupon.create(
                     "COUPON_" + System.currentTimeMillis() + "_" + i,
@@ -81,7 +84,7 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
     @DisplayName("사용자 쿠폰 조회 - N+1 문제 발생 확인")
     void getUserCoupons_N_Plus_1_Problem() {
         // Given: 사용자에게 10개 쿠폰 발급
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         for (Coupon coupon : testCoupons) {
             UserCoupon userCoupon = UserCoupon.create(testUser.getId(), coupon.getId(), now);
             userCouponRepository.save(userCoupon);
@@ -107,7 +110,7 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
     @DisplayName("사용자 쿠폰 조회 - 사용 가능한 쿠폰만 필터링")
     void getUserCoupons_OnlyAvailable() {
         // Given: 사용 가능/불가능 쿠폰 혼합
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
         // 사용 가능한 쿠폰 5개
         for (int i = 0; i < 5; i++) {
@@ -152,7 +155,7 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
     @DisplayName("사용자 쿠폰 조회 - 전체 쿠폰 조회 (사용 여부 무관)")
     void getUserCoupons_All() {
         // Given: 사용 가능 5개 + 사용 완료 3개
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
         for (int i = 0; i < 5; i++) {
             UserCoupon userCoupon = UserCoupon.create(testUser.getId(), testCoupons.get(i).getId(), now);
@@ -177,7 +180,7 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
     @DisplayName("성능 테스트: 100개 쿠폰 조회 - N+1 문제로 인한 성능 저하 확인")
     void performance_getUserCoupons_100Coupons_N_Plus_1_Impact() {
         // Given: 사용자에게 100개 쿠폰 발급
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         List<Coupon> manyCoupons = new ArrayList<>();
 
         for (int i = 1; i <= 100; i++) {
@@ -220,7 +223,7 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
     @DisplayName("성능 테스트: 500개 쿠폰 조회 - N+1 문제 영향 측정")
     void performance_getUserCoupons_500Coupons_MeasureN_Plus_1() {
         // Given: 사용자에게 500개 쿠폰 발급
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         List<Coupon> manyCoupons = new ArrayList<>();
 
         for (int i = 1; i <= 500; i++) {
@@ -263,7 +266,7 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
     @DisplayName("애플리케이션 레벨 필터링 - DB 레벨로 이동 시 성능 개선 확인")
     void performance_ApplicationLevelFiltering_ShouldMoveToDatabase() {
         // Given: 사용 가능 50개 + 사용 불가 450개 쿠폰
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
         // 사용 가능한 쿠폰 50개
         for (int i = 0; i < 50; i++) {
@@ -313,8 +316,5 @@ class UserCouponServiceIntegrationTest extends IntegrationTestSupport {
         // Then: 50개만 반환되지만, 500개 모두 조회 후 필터링
         assertThat(result.coupons()).hasSize(50);
 
-        System.out.println("사용 가능 쿠폰 조회 소요 시간 (애플리케이션 필터링): " + elapsedTime + "ms");
-        System.out.println("문제: 500개 모두 조회 후 애플리케이션에서 필터링");
-        System.out.println("개선안: WHERE used=false AND NOW() BETWEEN use_start_at AND use_end_at 조건으로 DB 레벨 필터링");
     }
 }
