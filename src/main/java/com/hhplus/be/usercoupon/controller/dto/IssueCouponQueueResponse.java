@@ -12,7 +12,8 @@ package com.hhplus.be.usercoupon.controller.dto;
 public record IssueCouponQueueResponse(
         boolean success,
         Long position,
-        String message
+        String message,
+        String resultUrl
 ) {
     /**
      * 발급 요청 접수됨 (202 Accepted)
@@ -20,8 +21,8 @@ public record IssueCouponQueueResponse(
      * @param position 대기 순번 (1부터 시작)
      * @param message 안내 메시지
      */
-    public static IssueCouponQueueResponse accepted(Long position, String message) {
-        return new IssueCouponQueueResponse(true, position, message);
+    public static IssueCouponQueueResponse accepted(Long position, String message, String resultUrl) {
+        return new IssueCouponQueueResponse(true, position, message, resultUrl);
     }
 
     /**
@@ -30,6 +31,6 @@ public record IssueCouponQueueResponse(
      * @param message 안내 메시지
      */
     public static IssueCouponQueueResponse failedSoldOut(String message) {
-        return new IssueCouponQueueResponse(false, null, message);
+        return new IssueCouponQueueResponse(false, null, message, null);
     }
 }
