@@ -68,6 +68,7 @@ public class CouponController {
                 .status(HttpStatus.ACCEPTED)
                 .body(IssueCouponQueueResponse.accepted(
                         position,
+                        "발급 요청이 접수되었습니다",
                         "Queue position: " + position + " | Check result: GET /api/v1/users/" + userId + "/coupons/" + couponId + "/result"
                 ));
     }
