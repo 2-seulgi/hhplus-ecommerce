@@ -38,6 +38,7 @@ class ProcessPaymentUseCaseTest {
     @Mock private CouponService couponService;
     @Mock private ProductStockService productStockService;
     @Mock private PointService pointService;
+    @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     private ProcessPaymentUseCase processPaymentUseCase;
 
@@ -53,7 +54,8 @@ class ProcessPaymentUseCaseTest {
                 couponService,
                 productStockService,
                 pointService,
-                clock
+                clock,
+                eventPublisher
         );
     }
 

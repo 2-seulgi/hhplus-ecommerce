@@ -5,6 +5,7 @@ import com.hhplus.be.coupon.infrastructure.mapper.CouponMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +43,13 @@ public class CouponRepositoryImpl implements com.hhplus.be.coupon.domain.reposit
     @Override
     public List<Coupon> findAll() {
         return couponJpaRepository.findAll().stream()
+                .map(couponMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Coupon> findAllByIssuePeriod(Instant now) {
+        return couponJpaRepository.findAllByIssuePeriod(now).stream()
                 .map(couponMapper::toDomain)
                 .toList();
     }
