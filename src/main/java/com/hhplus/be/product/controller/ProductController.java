@@ -3,11 +3,13 @@ package com.hhplus.be.product.controller;
 import com.hhplus.be.product.controller.dto.ProductDetailResponse;
 import com.hhplus.be.product.controller.dto.ProductListResponse;
 import com.hhplus.be.product.controller.dto.ProductStockResponse;
+import com.hhplus.be.product.controller.dto.RankingResponse;
 import com.hhplus.be.product.controller.dto.TopProductResponse;
 import com.hhplus.be.product.service.ProductService;
 import com.hhplus.be.product.service.dto.ProductDetailQuery;
 import com.hhplus.be.product.service.dto.ProductListQuery;
 import com.hhplus.be.product.service.dto.ProductStockQuery;
+import com.hhplus.be.product.service.dto.RankingQuery;
 import com.hhplus.be.product.service.dto.TopProductQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -91,6 +93,29 @@ public class ProductController {
         var query = new TopProductQuery(period, limit);
         var result = productService.getTopProducts(query);
         var response = TopProductResponse.from(result);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 실시간 상품 랭킹 조회 (Redis Sorted Set 기반)
+     * GET /api/v1/products/rankings?period=daily&limit=10
+     *
+     * 쿼리 파라미터:
+     * - period: "daily" (일간), "weekly" (주간), "all" (전체)
+     * - limit: 조회 개수 (1~100, 기본값: 10)
+     *
+     * 기존 /products/top과의 차이:
+     * - /top: DB 쿼리 기반, 캐시 10분
+     * - /rankings: Redis 실시간, 주문 완료 시 즉시 업데이트
+     */
+    @GetMapping("/rankings")
+    public ResponseEntity<RankingResponse> getRankings(
+            @RequestParam(required = false, defaultValue = "daily") String period,
+            @RequestParam(required = false, defaultValue = "10") int limit
+    ) {
+        var query = new RankingQuery(period, limit);
+        var result = productService.getRankings(query);
+        var response = RankingResponse.from(period, result);
         return ResponseEntity.ok(response);
     }
 }
