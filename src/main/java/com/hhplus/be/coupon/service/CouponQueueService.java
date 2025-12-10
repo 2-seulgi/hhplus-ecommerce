@@ -1,14 +1,10 @@
 package com.hhplus.be.coupon.service;
 
-import com.hhplus.be.common.exception.ResourceNotFoundException;
-import com.hhplus.be.coupon.domain.model.Coupon;
-import com.hhplus.be.coupon.domain.repository.CouponRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -16,15 +12,22 @@ import java.util.concurrent.TimeUnit;
 /**
  * Redis를 활용한 쿠폰 발급 큐 관리 서비스
  *
- * 아키텍처:
- * 1. Sorted Set: 선착순 순위 관리 (Score = 타임스탬프)
- * 2. Redis Stream: 발급 이벤트 큐 (워커가 소비)
- * 3. Redis String: 결과 저장 (TTL 10분)
+ * 개선된 아키텍처 (단순화):
+ * 1. Redis Stream: 발급 요청 메시지만 적재 (XADD)
+ * 2. Redis String: 결과 저장 (TTL 10분)
+ * 3. Worker: 모든 검증 + 발급 수행
+ *    - 선착순 검증 (DB 기반)
+ *    - 중복 발급 검증 (DB 기반)
+ *    - 실제 쿠폰 발급
  *
  * Redis Keys:
- * - coupon:queue:{couponId}           : Sorted Set (선착순 순위)
  * - coupon:stream:{couponId}          : Redis Stream (이벤트 큐)
  * - coupon:result:{userId}:{couponId} : String (발급 결과, TTL 10분)
+ *
+ * 장점:
+ * - Redis 로직 단순화 (INCR, ZADD 불필요)
+ * - 원자성 걱정 없음
+ * - 비즈니스 로직이 Worker에 집중
  */
 @Slf4j
 @Service
@@ -32,66 +35,27 @@ import java.util.concurrent.TimeUnit;
 public class CouponQueueService {
 
     private final RedisTemplate<String, String> redisTemplate;
-    private final Clock clock;
-    private final CouponRepository couponRepository;
 
-    private static final String QUEUE_KEY_PREFIX = "coupon:queue:";
     private static final String STREAM_KEY_PREFIX = "coupon:stream:";
     private static final String RESULT_KEY_PREFIX = "coupon:result:";
-    private static final String COUNTER_KEY_PREFIX = "coupon:counter:";
     private static final int RESULT_TTL_MINUTES = 10;
 
     /**
-     * 선착순 쿠폰 발급 요청 처리 (원자적 카운터 사용)
+     * 쿠폰 발급 요청을 Stream에 적재 (단순화)
      *
      * 프로세스:
-     * 1. 쿠폰 정보 조회 (총 발급 수량 확인)
-     * 2. Redis INCR로 원자적 카운터 증가 (race condition 방지)
-     * 3. 발급 수량 이내면 Sorted Set 추가 + Stream 발행
-     * 4. 발급 수량 초과면 카운터 감소
+     * 1. Redis Stream에 메시지만 추가 (XADD)
+     * 2. 즉시 202 Accepted 반환
+     * 3. Worker가 모든 검증 + 발급 수행
      *
      * @param couponId 쿠폰 ID
      * @param userId 사용자 ID
-     * @return 순위 (1부터 시작, 실패 시 null)
      */
-    public Long tryEnqueue(Long couponId, Long userId) {
-        String queueKey = getQueueKey(couponId);
-        String counterKey = getCounterKey(couponId);
-        String member = String.valueOf(userId);
-        long timestamp = clock.millis();
-
+    public void enqueue(Long couponId, Long userId) {
         try {
-            // 1. 쿠폰 정보 조회 (총 발급 수량 확인)
-            Coupon coupon = couponRepository.findById(couponId)
-                    .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
-            int maxQueueSize = coupon.getTotalQuantity();
-
-            // 2. 중복 확인: 이미 큐에 있으면 실패
-            Long existingRank = redisTemplate.opsForZSet().rank(queueKey, member);
-            if (existingRank != null) {
-                log.warn("이미 큐에 있는 사용자 - userId: {}, couponId: {}", userId, couponId);
-                return null;
-            }
-
-            // 3. 원자적 카운터 증가 (INCR)
-            Long position = redisTemplate.opsForValue().increment(counterKey);
-            if (position == null) {
-                log.error("INCR 실패 - userId: {}, couponId: {}", userId, couponId);
-                return null;
-            }
-
-            // 4. 발급 수량 이내면 Sorted Set 추가 + Stream 발행
-            if (position <= maxQueueSize) {
-                redisTemplate.opsForZSet().add(queueKey, member, timestamp);
-                publishToStream(couponId, userId);
-                log.debug("큐 추가 성공 - userId: {}, couponId: {}, position: {}/{}", userId, couponId, position, maxQueueSize);
-                return position;
-            }
-
-            // 5. 발급 수량 초과면 카운터 감소 (DECR)
-            redisTemplate.opsForValue().decrement(counterKey);
-            log.debug("선착순 마감 - userId: {}, couponId: {}, position: {}/{}", userId, couponId, position, maxQueueSize);
-            return null;
+            // Stream에 발급 요청 메시지 추가
+            publishToStream(couponId, userId);
+            log.info("쿠폰 발급 요청 큐 추가 - userId: {}, couponId: {}", userId, couponId);
 
         } catch (Exception e) {
             log.error("큐 추가 실패 - userId: {}, couponId: {}", userId, couponId, e);
@@ -152,32 +116,12 @@ public class CouponQueueService {
         return redisTemplate.opsForValue().get(resultKey);
     }
 
-    /**
-     * 현재 큐 크기 조회
-     *
-     * @param couponId 쿠폰 ID
-     * @return 큐에 대기 중인 사용자 수
-     */
-    public long getQueueSize(Long couponId) {
-        String queueKey = getQueueKey(couponId);
-        Long size = redisTemplate.opsForZSet().zCard(queueKey);
-        return size != null ? size : 0;
-    }
-
     // Redis Key 생성
-    private String getQueueKey(Long couponId) {
-        return QUEUE_KEY_PREFIX + couponId;
-    }
-
     private String getStreamKey(Long couponId) {
         return STREAM_KEY_PREFIX + couponId;
     }
 
     private String getResultKey(Long userId, Long couponId) {
         return RESULT_KEY_PREFIX + userId + ":" + couponId;
-    }
-
-    private String getCounterKey(Long couponId) {
-        return COUNTER_KEY_PREFIX + couponId;
     }
 }
