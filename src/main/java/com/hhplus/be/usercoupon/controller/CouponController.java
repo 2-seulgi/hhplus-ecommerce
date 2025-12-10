@@ -25,20 +25,21 @@ public class CouponController {
     private final CouponQueueService couponQueueService;
 
     /**
-     * 선착순 쿠폰 발급 (비동기 큐 방식)
+     * 선착순 쿠폰 발급 (비동기 큐 방식 - 단순화)
      *
      * POST /users/{userId}/coupons/{couponId}/issue
      *
-     * 프로세스:
-     * 1. Redis Sorted Set에 순위 등록 (ZADD)
-     * 2. 순위 확인 (ZRANK)
-     * 3. 100등 이내면 Redis Stream에 이벤트 발행
-     * 4. 202 Accepted 응답
-     * 5. 워커가 비동기로 실제 발급 처리
+     * 개선된 프로세스:
+     * 1. Redis Stream에 요청 메시지만 추가 (XADD)
+     * 2. 202 Accepted 즉시 응답
+     * 3. Worker가 비동기로:
+     *    - 선착순 검증 (DB 기반)
+     *    - 중복 발급 검증 (DB 기반)
+     *    - 실제 쿠폰 발급
+     * 4. 결과는 GET /result로 폴링
      *
      * 응답:
-     * - 202 Accepted: 발급 처리 중
-     * - 400 Bad Request: 선착순 마감
+     * - 202 Accepted: 발급 요청 접수됨 (항상)
      */
     @PostMapping("/{couponId}/issue")
     public ResponseEntity<IssueCouponQueueResponse> issueCoupon(
@@ -47,29 +48,18 @@ public class CouponController {
     ) {
         log.info("쿠폰 발급 요청 - userId: {}, couponId: {}", userId, couponId);
 
-        // Redis Sorted Set에 추가 & 순위 확인
-        Long position = couponQueueService.tryEnqueue(couponId, userId);
-
-        if (position == null) {
-            // 선착순 마감
-            log.info("선착순 마감 - userId: {}, couponId: {}", userId, couponId);
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(IssueCouponQueueResponse.failedSoldOut(
-                            "선착순 마감되었습니다. 다음 기회에 다시 시도해주세요."
-                    ));
-        }
+        // Stream에 발급 요청 추가
+        couponQueueService.enqueue(couponId, userId);
 
         // 발급 처리 중 (202 Accepted)
-        log.info("발급 요청 접수 - userId: {}, couponId: {}, position: {}",
-                userId, couponId, position);
+        log.info("발급 요청 접수 - userId: {}, couponId: {}", userId, couponId);
 
         return ResponseEntity
                 .status(HttpStatus.ACCEPTED)
                 .body(IssueCouponQueueResponse.accepted(
-                        position,
+                        null, // position은 Worker가 결정
                         "발급 요청이 접수되었습니다",
-                        "Queue position: " + position + " | Check result: GET /api/v1/users/" + userId + "/coupons/" + couponId + "/result"
+                        "Check result: GET /api/v1/users/" + userId + "/coupons/" + couponId + "/result"
                 ));
     }
 
