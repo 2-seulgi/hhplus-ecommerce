@@ -8,6 +8,7 @@ import com.hhplus.be.product.domain.model.Product;
 import com.hhplus.be.product.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ public class CartService {
      *
      * 동일 상품이 이미 장바구니에 있으면 수량 증가
      */
+    @Transactional
     public AddCartItemResult addCartItem(AddCartItemCommand command) {
         // 1. 상품 조회
         Product product = productRepository.findById(command.productId())
@@ -74,6 +76,7 @@ public class CartService {
      * 장바구니 조회
      * API: GET /users/{userId}/cart/items
      */
+    @Transactional(readOnly = true)
     public CartResult getCart(GetCartQuery query) {
         List<CartItem> cartItems = cartRepository.findByUserId(query.userId());
 
@@ -94,6 +97,7 @@ public class CartService {
      *
      * 수량이 0이면 자동 삭제
      */
+    @Transactional
     public CartResult updateCartItemQuantity(UpdateCartItemQuantityCommand command) {
         // 1. 장바구니 아이템 조회
         CartItem cartItem = cartRepository.findById(command.cartItemId())
@@ -120,6 +124,7 @@ public class CartService {
      * 장바구니 삭제
      * API: DELETE /users/{userId}/cart/items/{cartItemId}
      */
+    @Transactional
     public CartResult deleteCartItem(DeleteCartItemCommand command) {
         // 1. 장바구니 아이템 조회
         CartItem cartItem = cartRepository.findById(command.cartItemId())

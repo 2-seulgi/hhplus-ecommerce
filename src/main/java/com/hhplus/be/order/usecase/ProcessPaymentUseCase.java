@@ -38,171 +38,48 @@ public class ProcessPaymentUseCase {
 
     /**
      * 결제 처리 - 여러 도메인 서비스를 조율
-     *
+     * <p>
      * 보상 트랜잭션 전략:
      * - 재고 차감은 REQUIRES_NEW로 즉시 커밋 (성능 최적화)
      * - 이후 단계 실패 시 수동으로 재고 복원
      * - 쿠폰 사용 실패 시 전체 롤백
      */
-    @Transactional
     public PaymentResult execute(PaymentCommand command) {
         Instant now = Instant.now(clock);
+        // 1. 결제 검증 및 사전 계산 (트랜잭션 불필요)
+        PaymentValidationResult validated = validatePayment(command, now);
 
-        // 1. 주문 검증 (Order 도메인)
-        Order order = orderService.validateForPayment(
-                command.userId(),
-                command.orderId(),
-                now
-        );
-
-        // 2. 주문 항목 조회 (Order 도메인)
-        List<OrderItem> items = orderService.getOrderItems(command.orderId());
-
-        // 3. 쿠폰 할인 계산 (Coupon 도메인)
-        var couponResult = couponService.validateAndCalculateDiscount(
-                new ValidateDiscountCommand(command.userId(), command.couponCode() , order.getTotalAmount())
-        );
-
-        // 매핑 (쿠폰 도메인 -> 주문 도메인)
-        var discount = new DiscountCalculation(
-                couponResult.userCouponId(),
-                couponResult.couponId(),
-                couponResult.discountValue(),
-                couponResult.discountAmount()
-        );
-
-        // 보상 트랜잭션 추적 변수
+        // 2. 재고 차감 (트랜잭션 외부, 분산락 + REQUIRES_NEW)
         boolean stockDecreased = false;
-        boolean pointsDeducted = false;
-        Long usedCouponId = null;
-
         try {
-            // 4. 재고 차감 (분산락 + REQUIRES_NEW)
-            try {
-                productStockService.decreaseStocksWithLock(items);
-                stockDecreased = true;
-            } catch (LockAcquisitionException e) {
-                throw new BusinessException("재고 처리 중 오류가 발생했습니다", "STOCK_LOCK_FAILED");
-            }
-
-            // 5. 포인트 차감 (비관적 락)
-            int finalAmount = Math.max(0, order.getTotalAmount() - discount.discountAmount());
-            User user = pointService.deductPoints(command.userId(), finalAmount);
-            pointsDeducted = true;
-
-            // 6. 쿠폰 사용 처리 (분산락)
-            if (discount.hasDiscount()) {
-                couponService.markAsUsed(discount.userCouponId());
-                usedCouponId = discount.userCouponId();
-            }
-
-            // 7. 주문 확정 (Order 도메인)
-            orderService.confirmOrder(order, finalAmount, now);
-
-            // 8. 할인 정보 저장 (Order 도메인)
-            orderService.saveDiscountInfo(order.getId(), discount);
-
-            // 9. 포인트 히스토리 기록 (Point 도메인)
-            pointService.recordUseHistory(command.userId(), finalAmount, user.getBalance());
-
-            // 10. 주문 완료 이벤트 발행 (비동기 랭킹 업데이트용)
-            publishOrderConfirmedEvent(order.getId(), command.userId(), items, now);
-
-            return PaymentResult.from(order, user, discount.discountAmount());
-
-        } catch (Exception e) {
-            // ========== 보상 트랜잭션 시작 ==========
-            handlePaymentFailure(items, command.userId(),
-                Math.max(0, order.getTotalAmount() - discount.discountAmount()),
-                stockDecreased, pointsDeducted, usedCouponId, e);
-            throw e;  // 원본 예외 재전파
+            productStockService.decreaseStocksWithLock(validated.items());
+            stockDecreased = true;
+        } catch (LockAcquisitionException e) {
+            throw new BusinessException("재고 처리 중 오류가 발생했습니다", "STOCK_LOCK_FAILED");
         }
-    }
 
-    /**
-     * 결제 실패 시 보상 트랜잭션 처리
-     *
-     * 복원 순서 (역순):
-     * 1. 쿠폰 복원
-     * 2. 포인트 환불
-     * 3. 재고 복원
-     *
-     * 각 복원 작업은 독립적으로 시도되며, 일부 실패해도 다른 복원은 계속 진행됨
-     */
-    private void handlePaymentFailure(
-            List<OrderItem> items,
-            Long userId,
-            int finalAmount,
-            boolean stockDecreased,
-            boolean pointsDeducted,
-            Long usedCouponId,
-            Exception originalException) {
-
-        log.error("결제 실패, 보상 트랜잭션 시작 - userId: {}, orderId: {}, 원인: {}",
-            userId, items.isEmpty() ? "N/A" : items.get(0).getOrderId(),
-            originalException.getMessage(), originalException);
-
+        // 3. 트랜잭션 처리 (포인트, 쿠폰, 주문 확정)
         try {
-            // 1. 쿠폰 복원 (사용 처리된 경우)
-            if (usedCouponId != null) {
-                try {
-                    log.info("쿠폰 복원 시작 - userCouponId: {}", usedCouponId);
-                    couponService.restoreCoupon(usedCouponId);
-                    log.info("쿠폰 복원 성공 - userCouponId: {}", usedCouponId);
-                } catch (Exception e) {
-                    // 쿠폰 복원 실패는 로그만 남김 (결제는 이미 실패했으므로 사용자에게 영향 적음)
-                    log.error("쿠폰 복원 실패 - userCouponId: {}", usedCouponId, e);
-                }
-            }
-
-            // 2. 포인트 환불 (차감된 경우)
-            if (pointsDeducted) {
-                try {
-                    log.info("포인트 환불 시작 - userId: {}, amount: {}", userId, finalAmount);
-                    pointService.refundPoints(userId, finalAmount);
-                    pointService.recordRefundHistory(userId, finalAmount,
-                        pointService.getBalance(new com.hhplus.be.point.service.dto.PointBalanceQuery(userId)).balance());
-                    log.info("포인트 환불 성공 - userId: {}, amount: {}", userId, finalAmount);
-                } catch (Exception e) {
-                    // 포인트 환불 실패는 심각 (사용자 금전 피해)
-                    log.error("⚠️ [CRITICAL] 포인트 환불 실패 - userId: {}, amount: {} - 수동 처리 필요!",
-                        userId, finalAmount, e);
-                    // TODO: 실무에서는 알람 발송, 수동 처리 큐에 추가, Slack 알림 등
-                }
-            }
-
-            // 3. 재고 복원 (차감된 경우)
-            if (stockDecreased) {
-                try {
-                    log.info("재고 복원 시작 - items: {}", items.size());
-                    productStockService.increaseStocksWithLock(items);
-                    log.info("재고 복원 성공 - items: {}", items.size());
-                } catch (Exception e) {
-                    // 재고 복원 실패는 심각 (다른 사용자가 구매 못함)
-                    log.error("⚠️ [CRITICAL] 재고 복원 실패 - items: {} - 수동 처리 필요!",
-                        items, e);
-                    // TODO: 실무에서는 알람 발송, 수동 처리 큐에 추가, Slack 알림 등
-                }
-            }
-
+            return executePaymentInTransaction(command, validated, now);
         } catch (Exception e) {
-            // 보상 트랜잭션 자체가 실패 (최악의 경우)
-            log.error("⚠️⚠️ [CRITICAL] 보상 트랜잭션 전체 실패 - userId: {} - 긴급 대응 필요!",
-                userId, e);
-            // TODO: 실무에서는 즉시 알람, 별도 복구 프로세스 실행
+            // 4. 재고 보상 처리
+            if (stockDecreased) {
+                compensateStock(validated.items(), e);
+            }
+            throw e;
         }
     }
 
     /**
      * 주문 완료 이벤트 발행
-     *
+     * <p>
      * 비동기 랭킹 업데이트를 위한 이벤트 발행
      * - @TransactionalEventListener(AFTER_COMMIT)로 트랜잭션 커밋 후 실행됨
      * - @Async로 별도 스레드에서 처리되어 주문 응답 속도에 영향 없음
      *
-     * @param orderId 주문 ID
-     * @param userId 사용자 ID
-     * @param items 주문 항목 리스트
+     * @param orderId     주문 ID
+     * @param userId      사용자 ID
+     * @param items       주문 항목 리스트
      * @param confirmedAt 주문 확정 시간
      */
     private void publishOrderConfirmedEvent(
@@ -232,5 +109,151 @@ public class ProcessPaymentUseCase {
 
         log.info("주문 완료 이벤트 발행 - orderId: {}, userId: {}, items: {}",
                 orderId, userId, orderItemInfos.size());
+    }
+
+
+    /**
+     * 결제 검증 및 사전 계산 (트랜잭션 불필요)
+     *
+     * @return 검증된 결제 정보
+     */
+    private PaymentValidationResult validatePayment(PaymentCommand command, Instant now) {
+        // 1. 주문 검증 (Order 도메인)
+        Order order = orderService.validateForPayment(
+                command.userId(),
+                command.orderId(),
+                now
+        );
+
+        // 2. 주문 항목 조회 (Order 도메인)
+        List<OrderItem> items = orderService.getOrderItems(command.orderId());
+
+        // 3. 쿠폰 할인 계산 (Coupon 도메인)
+        var couponResult = couponService.validateAndCalculateDiscount(
+                new ValidateDiscountCommand(command.userId(), command.couponCode(), order.getTotalAmount())
+        );
+
+        // 매핑 (쿠폰 도메인 -> 주문 도메인)
+        var discount = new DiscountCalculation(
+                couponResult.userCouponId(),
+                couponResult.couponId(),
+                couponResult.discountValue(),
+                couponResult.discountAmount()
+        );
+
+        // 4. 최종 금액 계산
+        int finalAmount = Math.max(0, order.getTotalAmount() - discount.discountAmount());
+
+        return new PaymentValidationResult(order, items, discount, finalAmount);
+    }
+
+    /**
+     * 결제 검증 결과 (내부 DTO)
+     */
+    private record PaymentValidationResult(
+            Order order,
+            List<OrderItem> items,
+            DiscountCalculation discount,
+            int finalAmount
+    ) {
+    }
+
+    /**
+     * 결제 트랜잭션 처리
+     * <p>
+     * 검증 및 재고 차감 이후, 실제 결제 처리를 수행
+     *
+     * @param command   결제 명령
+     * @param validated 검증된 결제 정보
+     * @param now       현재 시각
+     * @return 결제 결과
+     */
+    @Transactional
+    protected PaymentResult executePaymentInTransaction(
+            PaymentCommand command,
+            PaymentValidationResult validated,
+            Instant now) {
+
+        Long usedCouponId = null;
+
+        try {
+            // 5. 포인트 차감 (비관적 락)
+            User user = pointService.deductPoints(command.userId(), validated.finalAmount());
+
+            // 6. 쿠폰 사용 처리
+            if (validated.discount().hasDiscount()) {
+                couponService.markAsUsed(validated.discount().userCouponId());
+                usedCouponId = validated.discount().userCouponId();
+            }
+
+            // 7. 주문 확정 (Order 도메인)
+            orderService.confirmOrder(validated.order(), validated.finalAmount(), now);
+
+            // 8. 할인 정보 저장 (Order 도메인)
+            orderService.saveDiscountInfo(validated.order().getId(), validated.discount());
+
+            // 9. 포인트 히스토리 기록 (Point 도메인)
+            pointService.recordUseHistory(command.userId(), validated.finalAmount(), user.getBalance());
+
+            // 10. 주문 완료 이벤트 발행 (비동기 처리용)
+            publishOrderConfirmedEvent(
+                    validated.order().getId(),
+                    command.userId(),
+                    validated.items(),
+                    now
+            );
+
+            return PaymentResult.from(validated.order(), user, validated.discount().discountAmount());
+
+        } catch (Exception e) {
+            // 트랜잭션 내부 실패 시 보상 처리
+            handleTransactionFailure(command.userId(), validated.finalAmount(), usedCouponId, e);
+            throw e;
+        }
+    }
+
+    /**
+     * 트랜잭션 내부 실패 시 보상 처리
+     * <p>
+     * 포인트/쿠폰 복원 (트랜잭션 롤백으로 자동 처리되지만, 명시적 복원 로직 유지)
+     */
+    private void handleTransactionFailure(
+            Long userId,
+            int finalAmount,
+            Long usedCouponId,
+            Exception originalException) {
+
+        log.error("트랜잭션 내부 실패 - userId: {}, finalAmount: {}, 원인: {}",
+                userId, finalAmount, originalException.getMessage(), originalException);
+
+        // 쿠폰 복원 (사용 처리된 경우)
+        if (usedCouponId != null) {
+            try {
+                log.info("쿠폰 복원 시작 - userCouponId: {}", usedCouponId);
+                couponService.restoreCoupon(usedCouponId);
+                log.info("쿠폰 복원 성공 - userCouponId: {}", usedCouponId);
+            } catch (Exception e) {
+                log.error("쿠폰 복원 실패 - userCouponId: {}", usedCouponId, e);
+            }
+        }
+    }
+
+    /**
+     * 재고 보상 처리
+     *
+     * 결제 실패 시 차감된 재고를 복원
+     */
+    private void compensateStock(List<OrderItem> items, Exception originalException) {
+        log.error("결제 실패, 재고 복원 시작 - items: {}, 원인: {}",
+                items.size(), originalException.getMessage(), originalException);
+
+        try {
+            productStockService.increaseStocksWithLock(items);
+            log.info("재고 복원 성공 - items: {}", items.size());
+        } catch (Exception e) {
+            log.error("⚠️ [CRITICAL] 재고 복원 실패 - items: {} - 수동 처리 필요!",
+                    items, e);
+            // TODO: 실무에서는 알람 발송, 수동 처리 큐에 추가, Slack 알림 등
+        }
     }
 }
