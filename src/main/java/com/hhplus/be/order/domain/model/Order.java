@@ -38,13 +38,13 @@ public class Order {
      */
     private Order(Long userId, int totalAmount, Instant now) {
         if (userId == null) {
-            throw new IllegalArgumentException("userId must not be null");
+            throw new IllegalArgumentException("사용자 ID는 필수입니다");
         }
         if (totalAmount <= 0) {
-            throw new IllegalArgumentException("totalAmount must be positive");
+            throw new IllegalArgumentException("주문 금액은 양수여야 합니다");
         }
         if (now == null) {
-            throw new IllegalArgumentException("now must not be null");
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
         }
 
         this.userId = userId;
@@ -83,13 +83,13 @@ public class Order {
                   Instant updatedAt) {
 
         if (userId == null) {
-            throw new IllegalArgumentException("userId must not be null");
+            throw new IllegalArgumentException("사용자 ID는 필수입니다");
         }
         if (status == null) {
-            throw new IllegalArgumentException("status must not be null");
+            throw new IllegalArgumentException("주문 상태는 필수입니다");
         }
         if (createdAt == null) {
-            throw new IllegalArgumentException("createdAt must not be null");
+            throw new IllegalArgumentException("생성 시각은 필수입니다");
         }
 
         // expiresAt 이 null 이면 최소한 createdAt 기준으로 보정
@@ -159,10 +159,10 @@ public class Order {
         }
 
         if (paidAt == null) {
-            throw new IllegalArgumentException("paidAt must not be null");
+            throw new IllegalArgumentException("결제 시각은 필수입니다");
         }
         if (finalAmount < 0) {
-            throw new IllegalArgumentException("finalAmount must not be negative");
+            throw new IllegalArgumentException("최종 금액은 음수일 수 없습니다");
         }
 
         this.status = OrderStatus.CONFIRMED;
@@ -177,7 +177,7 @@ public class Order {
             throw new BusinessException("취소할 수 없는 주문 상태입니다.", "INVALID_ORDER_STATUS");
         }
         if (now == null) {
-            throw new IllegalArgumentException("now must not be null");
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
         }
         this.status = OrderStatus.CANCELLED;
         this.canceledAt = now;
@@ -190,7 +190,7 @@ public class Order {
             throw new BusinessException("환불할 수 없는 주문 상태입니다.", "INVALID_ORDER_STATUS");
         }
         if (now == null) {
-            throw new IllegalArgumentException("now must not be null");
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
         }
         this.status = OrderStatus.REFUNDED;
         this.refundedAt = now;
@@ -200,7 +200,7 @@ public class Order {
     // 주문 만료 여부 확인
     public boolean isExpired(Instant now) {
         if (now == null) {
-            throw new IllegalArgumentException("now must not be null");
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
         }
         return !now.isBefore(this.expiresAt); // now >= expiresAt
     }
