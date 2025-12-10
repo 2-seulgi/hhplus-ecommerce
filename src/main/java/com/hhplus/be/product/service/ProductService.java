@@ -151,7 +151,7 @@ public class ProductService {
             case "daily" -> productRankingService.getTopProductsDaily(query.limit());
             case "weekly" -> productRankingService.getTopProductsWeekly(query.limit());
             case "all" -> productRankingService.getTopProductsAll(query.limit());
-            default -> throw new IllegalArgumentException("Invalid period: " + query.period());
+            default -> throw new IllegalArgumentException("잘못된 기간입니다: " + query.period());
         };
 
         // 2. 상품 ID 추출
