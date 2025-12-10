@@ -11,6 +11,7 @@ import com.hhplus.be.usercoupon.domain.model.UserCoupon;
 import com.hhplus.be.usercoupon.domain.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -22,7 +23,7 @@ public class CouponService {
     private final UserCouponRepository userCouponRepository;
     private final Clock clock; // 테스트용 주입
 
-
+    @Transactional(readOnly = true)
     public DiscountCalculationResult validateAndCalculateDiscount(ValidateDiscountCommand command) {
         if (command.couponCode() == null || command.couponCode().isBlank()) {
             return DiscountCalculationResult.noDiscount();
@@ -59,6 +60,7 @@ public class CouponService {
     /**
      * 쿠폰 사용 처리
      */
+    @Transactional
     public void markAsUsed(Long userCouponId) {
         UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                 .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
@@ -70,6 +72,7 @@ public class CouponService {
      * 쿠폰 사용 취소 (보상 트랜잭션용)
      * 결제 실패 시 쿠폰을 다시 사용 가능 상태로 복원
      */
+    @Transactional
     public void restoreCoupon(Long userCouponId) {
         UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                 .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
