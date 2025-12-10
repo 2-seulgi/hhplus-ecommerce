@@ -18,17 +18,24 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Redis Stream 쿠폰 발급 Consumer
+ * Redis Stream 쿠폰 발급 Consumer (개선됨)
  *
  * 역할:
- * 1. Redis Stream에서 발급 이벤트 소비 (XREADGROUP)
- * 2. UserCouponService를 호출하여 실제 쿠폰 발급
- * 3. 결과를 Redis에 저장 (SUCCESS/FAILED)
+ * 1. Redis Stream에서 발급 요청 메시지 소비 (XREADGROUP)
+ * 2. 선착순 검증 (DB 기반: issued < totalQuantity)
+ * 3. 중복 발급 검증 (DB 기반: UserCoupon 유니크 제약조건)
+ * 4. 실제 쿠폰 발급 (UserCouponService 호출)
+ * 5. 결과를 Redis에 저장 (SUCCESS/FAILED)
  *
  * 처리 방식:
  * - @Scheduled로 주기적으로 Stream 폴링
  * - Consumer Group 사용 (수평 확장 가능)
- * - 실패 시 자동 재시도 (Pending List)
+ * - 실패 시 ACK 전송 (재시도 방지)
+ *
+ * 개선 포인트:
+ * - Redis는 단순히 메시지 큐 역할만 수행
+ * - 모든 비즈니스 로직이 Worker에 집중
+ * - 원자성 걱정 없이 깔끔한 구조
  */
 @Slf4j
 @Component
@@ -109,7 +116,13 @@ public class CouponIssueConsumer {
     }
 
     /**
-     * 메시지 처리
+     * 메시지 처리 (개선: Worker가 모든 검증 수행)
+     *
+     * 프로세스:
+     * 1. 선착순 검증 (DB 기반: issued < totalQuantity)
+     * 2. 중복 발급 검증 (DB 기반: UserCoupon 존재 확인)
+     * 3. 실제 쿠폰 발급 (UserCouponService 호출)
+     * 4. 결과 저장 (SUCCESS/FAILED)
      *
      * @param streamKey Stream 키
      * @param message 메시지
@@ -126,11 +139,30 @@ public class CouponIssueConsumer {
 
             log.info("쿠폰 발급 처리 시작 - userId: {}, couponId: {}", userId, couponId);
 
-            // 실제 쿠폰 발급
+            // 1. 쿠폰 정보 조회
+            Coupon coupon = couponRepository.findById(couponId)
+                    .orElseThrow(() -> new IllegalArgumentException("쿠폰을 찾을 수 없습니다"));
+
+            // 2. 선착순 검증 (DB 기반)
+            if (coupon.getIssued() >= coupon.getTotalQuantity()) {
+                log.warn("선착순 마감 - userId: {}, couponId: {}, issued: {}/{}",
+                        userId, couponId, coupon.getIssued(), coupon.getTotalQuantity());
+
+                // 실패 결과 저장
+                couponQueueService.saveResult(userId, couponId, false);
+
+                // ACK 전송 (처리 완료)
+                redisTemplate.opsForStream().acknowledge(streamKey, consumerGroup, messageId);
+                return;
+            }
+
+            // 3. 중복 발급 검증은 UserCouponService에서 처리 (DB 유니크 제약조건)
+
+            // 4. 실제 쿠폰 발급
             IssueCouponCommand command = new IssueCouponCommand(userId, couponId);
             userCouponService.issueCoupon(command);
 
-            // 성공 결과 저장
+            // 5. 성공 결과 저장
             couponQueueService.saveResult(userId, couponId, true);
             log.info("쿠폰 발급 성공 - userId: {}, couponId: {}", userId, couponId);
 
