@@ -148,4 +148,16 @@ public class OrderDataPlatformOutbox {
         this.retryCount++;
         this.updatedAt = now;
     }
+
+    /**
+     * 재처리 시작 시 PENDING으로 변경
+     */
+    public void markAsPending(Instant now) {
+        if (now == null) {
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
+        }
+        this.status = OutboxStatus.PENDING;
+        this.errorMessage = null;
+        this.updatedAt = now;
+    }
 }

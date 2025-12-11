@@ -7,6 +7,7 @@ import com.hhplus.be.order.domain.repository.OrderDataPlatformOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -120,5 +121,29 @@ public class OrderDataPlatformEventListener {
 
             throw new RuntimeException(errorMsg, e);
         }
+    }
+
+    /**
+     * 재시도 최종 실패 시 호출되는 복구 메서드
+     *
+     * @Retryable의 모든 재시도가 실패한 후 호출됩니다.
+     * - 실패 로그 기록
+     * - 알림 시스템 연동 가능 (TODO)
+     * - Dead Letter Queue 전송 가능 (TODO)
+     *
+     * @param e 마지막 예외
+     * @param event 원본 이벤트
+     */
+    @Recover
+    public void recover(Exception e, OrderConfirmedEvent event) {
+        log.error("🚨 [최종 실패] 데이터 플랫폼 전송 실패 - 모든 재시도 소진 - orderId: {}, userId: {}, error: {}",
+                event.getOrderId(), event.getUserId(), e.getMessage(), e);
+
+        // TODO: 알림 시스템 연동 (Slack, Email 등)
+        // TODO: Dead Letter Queue로 전송
+        // TODO: 모니터링 메트릭 증가
+
+        // 현재는 로그만 남김 (실패한 Outbox 레코드는 이미 FAILED 상태로 저장됨)
+        // 나중에 스케줄러가 FAILED 레코드를 재처리할 것임
     }
 }
