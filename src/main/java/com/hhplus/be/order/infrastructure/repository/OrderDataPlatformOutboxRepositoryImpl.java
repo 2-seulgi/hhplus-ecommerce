@@ -7,6 +7,7 @@ import com.hhplus.be.order.infrastructure.mapper.OrderDataPlatformOutboxMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +39,18 @@ public class OrderDataPlatformOutboxRepositoryImpl implements OrderDataPlatformO
     @Override
     public List<OrderDataPlatformOutbox> findByStatus(OutboxStatus status) {
         return jpaRepository.findByStatus(status).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<OrderDataPlatformOutbox> findByStatusAndRetryCountLessThanAndCreatedAtBefore(
+            OutboxStatus status,
+            int maxRetryCount,
+            Instant before
+    ) {
+        return jpaRepository.findByStatusAndRetryCountLessThanAndCreatedAtBefore(status, maxRetryCount, before)
+                .stream()
                 .map(mapper::toDomain)
                 .toList();
     }
