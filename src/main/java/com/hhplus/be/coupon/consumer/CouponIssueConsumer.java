@@ -144,9 +144,9 @@ public class CouponIssueConsumer {
                     .orElseThrow(() -> new IllegalArgumentException("쿠폰을 찾을 수 없습니다"));
 
             // 2. 선착순 검증 (DB 기반)
-            if (coupon.getIssued() >= coupon.getTotalQuantity()) {
+            if (coupon.getIssuedQuantity() >= coupon.getTotalQuantity()) {
                 log.warn("선착순 마감 - userId: {}, couponId: {}, issued: {}/{}",
-                        userId, couponId, coupon.getIssued(), coupon.getTotalQuantity());
+                        userId, couponId, coupon.getIssuedQuantity(), coupon.getTotalQuantity());
 
                 // 실패 결과 저장
                 couponQueueService.saveResult(userId, couponId, false);
