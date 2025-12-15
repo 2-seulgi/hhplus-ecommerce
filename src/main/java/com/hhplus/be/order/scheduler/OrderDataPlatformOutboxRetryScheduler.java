@@ -7,6 +7,7 @@ import com.hhplus.be.order.domain.model.OutboxStatus;
 import com.hhplus.be.order.domain.repository.OrderDataPlatformOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,10 +43,20 @@ public class OrderDataPlatformOutboxRetryScheduler {
     private static final int MAX_RETRY_COUNT = 10;
     private static final int RETRY_DELAY_MINUTES = 5;
 
-    /**
+       /**
      * 실패한 Outbox 재처리 (10분마다 실행)
+     *
+     * ShedLock 적용:
+     * - lockAtMostFor: 최대 9분 (서버 장애 시 락 자동 해제)
+     * - lockAtLeastFor: 최소 30초 (너무 자주 실행 방지)
+     * - 여러 인스턴스 환경에서 중복 실행 방지
      */
     @Scheduled(fixedDelay = 600_000) // 10분
+    @SchedulerLock(
+            name = "retryFailedDataPlatformOutbox",
+            lockAtMostFor = "9m",
+            lockAtLeastFor = "30s"
+    )
     public void retryFailedOutbox() {
         try {
             log.debug("🔄 실패한 데이터 플랫폼 전송 재처리 시작");
