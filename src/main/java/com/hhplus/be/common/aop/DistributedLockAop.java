@@ -33,7 +33,7 @@ public class DistributedLockAop {
                 distributedLock.key()
         ).toString();
 
-        String lockKey = REDISSON_LOCK_PREFIX + dynamicKey;  // REFIX -> PREFIX 오타도 수정
+        String lockKey = REDISSON_LOCK_PREFIX + dynamicKey;
         RLock lock = redissonClient.getLock(lockKey);
         log.info("락 획득 시도: key={}", lockKey);
 

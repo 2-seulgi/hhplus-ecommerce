@@ -67,6 +67,30 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * IllegalArgumentException 처리 (400 Bad Request)
+     * 도메인 모델의 불변식(invariant) 검증 실패 시 발생
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+            IllegalArgumentException e,
+            HttpServletRequest request
+    ) {
+        log.warn("Invalid argument exception occurred: {}", e.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "INVALID_ARGUMENT",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errorResponse);
+    }
+
+    /**
      * 500 Internal Server Error
      */
     @ExceptionHandler(Exception.class)

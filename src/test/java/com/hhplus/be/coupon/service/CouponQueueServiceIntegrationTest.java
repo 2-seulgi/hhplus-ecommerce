@@ -9,28 +9,27 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.stream.LongStream;
 
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * CouponQueueService 통합 테스트
+ * CouponQueueService 통합 테스트 (Redis Stream 기반)
  *
  * 테스트 항목:
- * 1. 동적 큐 사이즈 (Coupon.totalQuantity)
- * 2. Redis Sorted Set 순위 관리
- * 3. Redis Stream 이벤트 발행
- * 4. 결과 저장/조회
- * 5. 동시성 테스트 (선착순 보장)
+ * 1. Redis Stream 이벤트 발행
+ * 2. 결과 저장/조회
+ * 3. TTL 동작 확인
+ * 4. 동시성 테스트
  */
 class CouponQueueServiceIntegrationTest extends IntegrationTestSupport {
 
@@ -50,34 +49,38 @@ class CouponQueueServiceIntegrationTest extends IntegrationTestSupport {
 
     @BeforeEach
     void setUp() {
-        // 테스트 쿠폰 생성 (선착순 100명)
+        // 테스트 쿠폰 생성
         Instant now = clock.instant();
+        Instant validUntil = now.plus(7, ChronoUnit.DAYS);
         testCoupon = Coupon.create(
-                "FIRST_COME_" + System.currentTimeMillis(),
-                "선착순 테스트 쿠폰",
-                DiscountType.FIXED,
-                5000,
-                100, // totalQuantity = 100명
-                0,
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS),
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS)
+                "TEST" + System.currentTimeMillis(),  // code
+                "테스트 쿠폰",                          // name
+                DiscountType.FIXED,                  // discountType
+                1000,                                // discountValue
+                100,                                 // totalQuantity
+                0,                                   // issuedQuantity
+                now,                                 // issueStartAt
+                validUntil,                          // issueEndAt
+                now,                                 // useStartAt
+                validUntil                           // useEndAt
         );
         testCoupon = couponRepository.save(testCoupon);
+
+        // Redis 초기화
+        cleanupRedis();
     }
 
     @AfterEach
     void tearDown() {
-        // Redis 데이터 정리
-        String queueKey = "coupon:queue:" + testCoupon.getId();
-        String streamKey = "coupon:stream:" + testCoupon.getId();
-        String counterKey = "coupon:counter:" + testCoupon.getId();
-        redisTemplate.delete(queueKey);
-        redisTemplate.delete(streamKey);
-        redisTemplate.delete(counterKey);
+        cleanupRedis();
+    }
 
-        // 결과 키 정리 (패턴 매칭)
+    private void cleanupRedis() {
+        // Stream 키 정리
+        String streamKey = "coupon:stream:" + (testCoupon != null ? testCoupon.getId() : "*");
+        redisTemplate.delete(streamKey);
+
+        // Result 키 정리 (패턴 매칭)
         Set<String> resultKeys = redisTemplate.keys("coupon:result:*");
         if (resultKeys != null && !resultKeys.isEmpty()) {
             redisTemplate.delete(resultKeys);
@@ -85,204 +88,108 @@ class CouponQueueServiceIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    @DisplayName("선착순 발급 성공 - 순위 확인")
-    void tryEnqueue_Success_ReturnsPosition() {
+    @DisplayName("발급 요청 시 Redis Stream에 메시지가 추가된다")
+    void enqueue_AddsMessageToStream() {
         // Given
         Long userId = 1L;
 
         // When
-        Long position = couponQueueService.tryEnqueue(testCoupon.getId(), userId);
+        couponQueueService.enqueue(testCoupon.getId(), userId);
+
+        // Then: Stream에 메시지가 있는지 확인
+        String streamKey = "coupon:stream:" + testCoupon.getId();
+        Long streamSize = redisTemplate.opsForStream().size(streamKey);
+        assertThat(streamSize).isEqualTo(1L);
+
+        // 메시지 내용 확인
+        List<MapRecord<String, Object, Object>> messages = redisTemplate.opsForStream()
+                .range(streamKey, org.springframework.data.domain.Range.unbounded());
+
+        assertThat(messages).hasSize(1);
+        MapRecord<String, Object, Object> message = messages.get(0);
+        assertThat(message.getValue().get("userId")).isEqualTo(String.valueOf(userId));
+        assertThat(message.getValue().get("couponId")).isEqualTo(String.valueOf(testCoupon.getId()));
+    }
+
+    @Test
+    @DisplayName("여러 사용자의 발급 요청이 Stream에 순서대로 추가된다")
+    void enqueue_MultipleUsers_AddsInOrder() {
+        // Given
+        List<Long> userIds = List.of(1L, 2L, 3L, 4L, 5L);
+
+        // When
+        for (Long userId : userIds) {
+            couponQueueService.enqueue(testCoupon.getId(), userId);
+        }
 
         // Then
-        assertThat(position).isEqualTo(1L); // 1등
-
-        // Redis Sorted Set 확인
-        String queueKey = "coupon:queue:" + testCoupon.getId();
-        Long rank = redisTemplate.opsForZSet().rank(queueKey, String.valueOf(userId));
-        assertThat(rank).isEqualTo(0L); // 0-based index
-    }
-
-    @Test
-    @DisplayName("선착순 발급 - 순서대로 순위 부여")
-    void tryEnqueue_MultipleUsers_CorrectPositions() {
-        // Given: 10명의 사용자
-        List<Long> userIds = List.of(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
-
-        // When: 순차적으로 발급 요청
-        List<Long> positions = new ArrayList<>();
-        for (Long userId : userIds) {
-            Long position = couponQueueService.tryEnqueue(testCoupon.getId(), userId);
-            positions.add(position);
-        }
-
-        // Then: 순위가 1부터 10까지 순서대로
-        assertThat(positions).containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
-    }
-
-    @Test
-    @DisplayName("선착순 마감 - 발급 수량 초과 시 null 반환")
-    void tryEnqueue_ExceedLimit_ReturnsNull() {
-        // Given: totalQuantity = 100인 쿠폰
-        // 100명의 사용자가 이미 큐에 등록됨
-        for (long i = 1; i <= 100; i++) {
-            couponQueueService.tryEnqueue(testCoupon.getId(), i);
-        }
-
-        // When: 101번째 사용자 요청
-        Long position = couponQueueService.tryEnqueue(testCoupon.getId(), 101L);
-
-        // Then: null 반환 (선착순 마감)
-        assertThat(position).isNull();
-
-        // Redis Sorted Set에서 제거됨
-        String queueKey = "coupon:queue:" + testCoupon.getId();
-        Long rank = redisTemplate.opsForZSet().rank(queueKey, "101");
-        assertThat(rank).isNull();
-    }
-
-    @Test
-    @DisplayName("동적 큐 사이즈 - Coupon.totalQuantity 사용")
-    void tryEnqueue_DynamicQueueSize_UsesTotalQuantity() {
-        // Given: totalQuantity = 50인 쿠폰
-        Instant now = clock.instant();
-        Coupon smallCoupon = Coupon.create(
-                "SMALL_" + System.currentTimeMillis(),
-                "소량 쿠폰",
-                DiscountType.FIXED,
-                5000,
-                50, // totalQuantity = 50명
-                0,
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS),
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS)
-        );
-        smallCoupon = couponRepository.save(smallCoupon);
-
-        // When: 1-50명까지는 성공
-        for (long i = 1; i <= 50; i++) {
-            Long position = couponQueueService.tryEnqueue(smallCoupon.getId(), i);
-            assertThat(position).isNotNull();
-        }
-
-        // 51번째는 실패
-        Long position51 = couponQueueService.tryEnqueue(smallCoupon.getId(), 51L);
-        assertThat(position51).isNull();
-
-        // Cleanup
-        redisTemplate.delete("coupon:queue:" + smallCoupon.getId());
-        redisTemplate.delete("coupon:stream:" + smallCoupon.getId());
-        redisTemplate.delete("coupon:counter:" + smallCoupon.getId());
-    }
-
-    @Test
-    @DisplayName("중복 발급 방지 - 이미 큐에 있는 사용자")
-    void tryEnqueue_DuplicateUser_ReturnsNull() {
-        // Given
-        Long userId = 1L;
-        couponQueueService.tryEnqueue(testCoupon.getId(), userId);
-
-        // When: 동일 사용자가 다시 요청
-        Long position = couponQueueService.tryEnqueue(testCoupon.getId(), userId);
-
-        // Then: null 반환 (중복 방지)
-        assertThat(position).isNull();
-    }
-
-    @Test
-    @DisplayName("Redis Stream 이벤트 발행 확인")
-    void tryEnqueue_Success_PublishesToStream() throws InterruptedException {
-        // Given
-        Long userId = 1L;
-
-        // When
-        couponQueueService.tryEnqueue(testCoupon.getId(), userId);
-
-        // Then: Redis Stream에 메시지 발행됨
         String streamKey = "coupon:stream:" + testCoupon.getId();
+        Long streamSize = redisTemplate.opsForStream().size(streamKey);
+        assertThat(streamSize).isEqualTo(5L);
 
-        // Stream 길이 확인 (메시지가 1개 있어야 함)
-        Long streamLength = redisTemplate.opsForStream().size(streamKey);
-        assertThat(streamLength).isGreaterThan(0L);
+        List<MapRecord<String, Object, Object>> messages = redisTemplate.opsForStream()
+                .range(streamKey, org.springframework.data.domain.Range.unbounded());
+        assertThat(messages).hasSize(5);
     }
 
     @Test
-    @DisplayName("결과 저장 및 조회 - SUCCESS")
+    @DisplayName("발급 결과를 저장하고 조회할 수 있다")
     void saveAndGetResult_Success() {
         // Given
-        Long userId = 1L;
+        Long userId = 100L;
         Long couponId = testCoupon.getId();
 
         // When: 성공 결과 저장
         couponQueueService.saveResult(userId, couponId, true);
 
-        // Then: SUCCESS 조회
+        // Then: 결과 조회
         String result = couponQueueService.getResult(userId, couponId);
         assertThat(result).isEqualTo("SUCCESS");
     }
 
     @Test
-    @DisplayName("결과 저장 및 조회 - FAILED")
+    @DisplayName("발급 실패 결과를 저장하고 조회할 수 있다")
     void saveAndGetResult_Failed() {
         // Given
-        Long userId = 1L;
+        Long userId = 101L;
         Long couponId = testCoupon.getId();
 
         // When: 실패 결과 저장
         couponQueueService.saveResult(userId, couponId, false);
 
-        // Then: FAILED 조회
+        // Then: 결과 조회
         String result = couponQueueService.getResult(userId, couponId);
         assertThat(result).isEqualTo("FAILED");
     }
 
     @Test
-    @DisplayName("결과 조회 - 처리 중 (null)")
-    void getResult_Processing_ReturnsNull() {
-        // Given: 결과가 아직 저장되지 않음
-        Long userId = 1L;
+    @DisplayName("처리되지 않은 요청은 null을 반환한다")
+    void getResult_NotProcessed_ReturnsNull() {
+        // Given: 저장하지 않음
+        Long userId = 999L;
         Long couponId = testCoupon.getId();
 
-        // When: 결과 조회
+        // When
         String result = couponQueueService.getResult(userId, couponId);
 
-        // Then: null 반환 (처리 중)
+        // Then
         assertThat(result).isNull();
     }
 
     @Test
-    @DisplayName("큐 크기 조회")
-    void getQueueSize_ReturnsCorrectSize() {
-        // Given: 5명이 큐에 등록
-        for (long i = 1; i <= 5; i++) {
-            couponQueueService.tryEnqueue(testCoupon.getId(), i);
-        }
+    @DisplayName("동시에 여러 사용자가 발급 요청을 해도 모두 Stream에 추가된다")
+    void enqueue_ConcurrentRequests_AllAdded() throws InterruptedException {
+        // Given
+        int threadCount = 50;
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
 
-        // When
-        long queueSize = couponQueueService.getQueueSize(testCoupon.getId());
-
-        // Then
-        assertThat(queueSize).isEqualTo(5L);
-    }
-
-    @Test
-    @DisplayName("동시성 테스트 - 200명이 동시에 요청, 정확히 100명만 성공")
-    void tryEnqueue_Concurrency_Exactly100Succeed() throws InterruptedException {
-        // Given: 200명의 사용자가 동시에 요청
-        int totalUsers = 200;
-        ExecutorService executorService = Executors.newFixedThreadPool(50);
-        CountDownLatch latch = new CountDownLatch(totalUsers);
-        ConcurrentHashMap<Long, Long> results = new ConcurrentHashMap<>();
-
-        // When: 동시 요청
-        for (long userId = 1; userId <= totalUsers; userId++) {
-            long finalUserId = userId;
-            executorService.submit(() -> {
+        // When: 50명이 동시에 요청
+        for (int i = 0; i < threadCount; i++) {
+            final long userId = i;
+            executor.submit(() -> {
                 try {
-                    Long position = couponQueueService.tryEnqueue(testCoupon.getId(), finalUserId);
-                    if (position != null) {
-                        results.put(finalUserId, position);
-                    }
+                    couponQueueService.enqueue(testCoupon.getId(), userId);
                 } finally {
                     latch.countDown();
                 }
@@ -290,45 +197,28 @@ class CouponQueueServiceIntegrationTest extends IntegrationTestSupport {
         }
 
         latch.await(10, TimeUnit.SECONDS);
-        executorService.shutdown();
+        executor.shutdown();
 
-        // Then: 정확히 100명만 성공 (Redis INCR로 원자성 보장)
-        assertThat(results.size()).isEqualTo(100);
-
-        // 순위가 1부터 100까지인지 확인
-        List<Long> positions = new ArrayList<>(results.values());
-        assertThat(positions).containsExactlyInAnyOrder(
-                LongStream.rangeClosed(1, 100).boxed().toArray(Long[]::new)
-        );
+        // Then: 50개 메시지가 모두 Stream에 추가됨
+        String streamKey = "coupon:stream:" + testCoupon.getId();
+        Long streamSize = redisTemplate.opsForStream().size(streamKey);
+        assertThat(streamSize).isEqualTo(50L);
     }
 
     @Test
-    @DisplayName("타임스탬프 기반 순위 - 먼저 요청한 사용자가 먼저")
-    void tryEnqueue_TimestampBased_FirstComeFirstServed() throws InterruptedException {
-        // Given: 3명이 시간차로 요청
-        Long user1 = 1L;
-        Long user2 = 2L;
-        Long user3 = 3L;
+    @DisplayName("같은 사용자가 여러 번 요청해도 Stream에 모두 추가된다 (중복 체크는 Worker에서)")
+    void enqueue_SameUserMultipleTimes_AllAdded() {
+        // Given
+        Long userId = 1L;
 
-        // When
-        Long position1 = couponQueueService.tryEnqueue(testCoupon.getId(), user1);
-        Thread.sleep(10); // 시간차
-        Long position2 = couponQueueService.tryEnqueue(testCoupon.getId(), user2);
-        Thread.sleep(10); // 시간차
-        Long position3 = couponQueueService.tryEnqueue(testCoupon.getId(), user3);
+        // When: 같은 사용자가 3번 요청
+        couponQueueService.enqueue(testCoupon.getId(), userId);
+        couponQueueService.enqueue(testCoupon.getId(), userId);
+        couponQueueService.enqueue(testCoupon.getId(), userId);
 
-        // Then: 순서대로 순위 부여
-        assertThat(position1).isEqualTo(1L);
-        assertThat(position2).isEqualTo(2L);
-        assertThat(position3).isEqualTo(3L);
-
-        // Redis Sorted Set에서 Score 확인
-        String queueKey = "coupon:queue:" + testCoupon.getId();
-        Double score1 = redisTemplate.opsForZSet().score(queueKey, String.valueOf(user1));
-        Double score2 = redisTemplate.opsForZSet().score(queueKey, String.valueOf(user2));
-        Double score3 = redisTemplate.opsForZSet().score(queueKey, String.valueOf(user3));
-
-        assertThat(score1).isLessThan(score2);
-        assertThat(score2).isLessThan(score3);
+        // Then: 3개 모두 Stream에 추가됨 (중복 체크는 Worker 담당)
+        String streamKey = "coupon:stream:" + testCoupon.getId();
+        Long streamSize = redisTemplate.opsForStream().size(streamKey);
+        assertThat(streamSize).isEqualTo(3L);
     }
 }

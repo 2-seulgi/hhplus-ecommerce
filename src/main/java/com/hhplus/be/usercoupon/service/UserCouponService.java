@@ -15,6 +15,7 @@ import com.hhplus.be.usercoupon.service.dto.IssueCouponResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -33,54 +34,66 @@ public class UserCouponService {
     /**
      * 쿠폰 발급
      *
-     * 비즈니스 규칙:
-     * 1. 사용자 존재 확인
-     * 2. 쿠폰 조회  -> 비관적 락 제거
-     * 3. 발급 기간 확인 (issueStartAt ~ issueEndAt)
-     * 4. 중복 발급 확인 (1인 1회 제한)
-     * 5. 발급 수량 확인 및 증가
-     * 6. UserCoupon 생성
-     *
-     * 참고: 비관적 락으로 재시도 불필요
+     * 트랜잭션 최적화:
+     * - 검증 로직: 트랜잭션 외부 (validateCouponIssue)
+     * - 업데이트 로직: 트랜잭션 내부 (issueInTransaction)
+     * - AopForTransaction에서 REQUIRES_NEW 트랜잭션 관리
      */
     @DistributedLock(key = "'coupon:' + #command.couponId", waitTime = 2, leaseTime = 10)
-    @Transactional
     public IssueCouponResult issueCoupon(IssueCouponCommand command) {
-        // 1. 사용자 존재 확인
+        Instant now = clock.instant();
+
+        // 1. 검증 (트랜잭션 외부)
+        Coupon coupon = validateCouponIssue(command, now);
+
+        // 2. 트랜잭션 처리
+        return issueInTransaction(command, coupon, now);
+    }
+
+    /**
+     * 쿠폰 발급 검증 (트랜잭션 불필요)
+     *
+     * @return 검증된 Coupon 객체
+     * @throws ResourceNotFoundException 사용자/쿠폰을 찾을 수 없는 경우
+     * @throws BusinessException 발급 기간이 아니거나 이미 발급받은 경우
+     */
+    private Coupon validateCouponIssue(IssueCouponCommand command, Instant now) {
         userRepository.findById(command.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("존재하지 않는 회원입니다"));
-
-        // 2. 쿠폰 조회 락 제거
         Coupon coupon = couponRepository.findById(command.couponId())
                 .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
-
-        // 3. 발급 기간 확인
-        Instant now = clock.instant();
         if (now.isBefore(coupon.getIssueStartAt()) || now.isAfter(coupon.getIssueEndAt())) {
             throw new BusinessException("쿠폰 발급 기간이 아닙니다", "ISSUE_PERIOD_EXPIRED");
         }
-
-        // 4. 중복 발급 확인
         userCouponRepository.findByUserIdAndCouponId(command.userId(), command.couponId())
                 .ifPresent(uc -> {
                     throw new BusinessException("이미 발급받은 쿠폰입니다", "ALREADY_ISSUED");
                 });
+        return coupon;
+    }
 
-        // 5. 발급 수량 증가 (호출 전 비관적 락 획득 필요)
+    /**
+     * 쿠폰 발급 트랜잭션 처리
+     *
+     * AopForTransaction에서 이미 REQUIRES_NEW 트랜잭션을 시작하므로
+     * 별도 @Transactional 불필요
+     */
+    private IssueCouponResult issueInTransaction(IssueCouponCommand command, Coupon coupon, Instant now) {
         coupon.increaseIssued();
         couponRepository.save(coupon);
 
-        // 6. UserCoupon 생성
         UserCoupon userCoupon = UserCoupon.create(command.userId(), command.couponId(), now);
         try {
             userCouponRepository.save(userCoupon);
         } catch (DataIntegrityViolationException e) {
-            // UNIQUE 제약 위반 (동시성 상황에서 중복 발급 시도)
             throw new BusinessException("이미 발급받은 쿠폰입니다", "ALREADY_ISSUED");
         }
 
         return IssueCouponResult.from(userCoupon, coupon);
     }
+
+
+
 
     /**
      * 보유 쿠폰 조회

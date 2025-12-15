@@ -22,17 +22,20 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * CouponController 통합 테스트
+ * CouponController 통합 테스트 (Redis Stream 기반)
  *
- * 테스트 API:
- * - POST /api/v1/users/{userId}/coupons/{couponId}/issue
- * - GET /api/v1/users/{userId}/coupons/{couponId}/result
+ * 테스트 시나리오:
+ * 1. 발급 요청 → 항상 202 Accepted (Stream에 추가만)
+ * 2. 결과 조회 → PROCESSING / SUCCESS / FAILED
+ *
+ * 선착순/중복 체크는 Worker에서 수행하므로 Controller 테스트에서 제외
  */
 @AutoConfigureMockMvc
 class CouponControllerIntegrationTest extends IntegrationTestSupport {
@@ -60,41 +63,44 @@ class CouponControllerIntegrationTest extends IntegrationTestSupport {
 
     @BeforeEach
     void setUp() {
-        // 테스트 유저 생성
-        testUser = User.create(
-                "쿠폰테스트유저",
-                "coupon_test_" + System.currentTimeMillis() + "@test.com",
-                100000
-        );
+        // 테스트 사용자 생성
+        testUser = User.create("테스트유저", "test_" + System.currentTimeMillis() + "@test.com", 100000);
         testUser = userRepository.save(testUser);
 
-        // 테스트 쿠폰 생성 (선착순 100명)
+        // 테스트 쿠폰 생성
         Instant now = clock.instant();
+        Instant validUntil = now.plus(7, ChronoUnit.DAYS);
         testCoupon = Coupon.create(
-                "FIRST_COME_" + System.currentTimeMillis(),
-                "선착순 테스트 쿠폰",
-                DiscountType.FIXED,
-                5000,
-                100,
-                0,
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS),
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS)
+                "TEST" + System.currentTimeMillis(),  // code
+                "선착순 테스트 쿠폰",                   // name
+                DiscountType.FIXED,                  // discountType
+                1000,                                // discountValue
+                100,                                 // totalQuantity
+                0,                                   // issuedQuantity
+                now,                                 // issueStartAt
+                validUntil,                          // issueEndAt
+                now,                                 // useStartAt
+                validUntil                           // useEndAt
         );
         testCoupon = couponRepository.save(testCoupon);
+
+        // Redis 초기화
+        cleanupRedis();
     }
 
     @AfterEach
     void tearDown() {
-        // Redis 데이터 정리
-        String queueKey = "coupon:queue:" + testCoupon.getId();
-        String streamKey = "coupon:stream:" + testCoupon.getId();
-        String counterKey = "coupon:counter:" + testCoupon.getId();
-        redisTemplate.delete(queueKey);
-        redisTemplate.delete(streamKey);
-        redisTemplate.delete(counterKey);
+        cleanupRedis();
+    }
 
+    private void cleanupRedis() {
+        // Stream 정리
+        if (testCoupon != null) {
+            String streamKey = "coupon:stream:" + testCoupon.getId();
+            redisTemplate.delete(streamKey);
+        }
+
+        // Result 정리
         Set<String> resultKeys = redisTemplate.keys("coupon:result:*");
         if (resultKeys != null && !resultKeys.isEmpty()) {
             redisTemplate.delete(resultKeys);
@@ -102,7 +108,7 @@ class CouponControllerIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    @DisplayName("POST /issue - 쿠폰 발급 요청 성공 (202 Accepted)")
+    @DisplayName("POST /issue - 발급 요청 성공 (202 Accepted)")
     void issueCoupon_Success_Returns202Accepted() throws Exception {
         // When & Then
         mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
@@ -111,57 +117,43 @@ class CouponControllerIntegrationTest extends IntegrationTestSupport {
                 .andDo(print())
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.position").value(1))
-                .andExpect(jsonPath("$.message").value(containsString("발급 요청이 접수되었습니다")));
+                .andExpect(jsonPath("$.message").value(containsString("발급 요청이 접수되었습니다")))
+                .andExpect(jsonPath("$.resultUrl").value(containsString("/result")));
     }
 
     @Test
-    @DisplayName("POST /issue - 선착순 마감 (400 Bad Request)")
-    void issueCoupon_SoldOut_Returns400BadRequest() throws Exception {
-        // Given: 100명이 이미 큐에 등록됨
-        for (long i = 1; i <= 100; i++) {
-            couponQueueService.tryEnqueue(testCoupon.getId(), i);
-        }
+    @DisplayName("POST /issue - 여러 사용자 발급 요청 모두 202 반환 (Worker가 선착순 처리)")
+    void issueCoupon_MultipleUsers_AllAccepted() throws Exception {
+        // Given: 3명의 사용자
+        User user1 = User.create("유저1", "user1_" + System.currentTimeMillis() + "@test.com", 50000);
+        User user2 = User.create("유저2", "user2_" + System.currentTimeMillis() + "@test.com", 50000);
+        User user3 = User.create("유저3", "user3_" + System.currentTimeMillis() + "@test.com", 50000);
+        userRepository.save(user1);
+        userRepository.save(user2);
+        userRepository.save(user3);
 
-        // When: 101번째 사용자 요청
-        Long newUserId = 101L;
-        User newUser = User.create("새유저", "new_" + System.currentTimeMillis() + "@test.com", 100000);
-        newUser = userRepository.save(newUser);
-
-        // Then: 400 Bad Request
+        // When & Then: 모두 202 Accepted (Stream에 추가만)
         mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        newUser.getId(), testCoupon.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.position").isEmpty())
-                .andExpect(jsonPath("$.message").value(containsString("선착순 마감")));
-    }
-
-    @Test
-    @DisplayName("POST /issue - 중복 발급 방지 (400 Bad Request)")
-    void issueCoupon_Duplicate_Returns400BadRequest() throws Exception {
-        // Given: 이미 발급 요청함
-        mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        testUser.getId(), testCoupon.getId())
+                        user1.getId(), testCoupon.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isAccepted());
 
-        // When: 동일 사용자가 다시 요청
-        // Then: 400 Bad Request
         mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        testUser.getId(), testCoupon.getId())
+                        user2.getId(), testCoupon.getId())
                         .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isAccepted());
+
+        mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
+                        user3.getId(), testCoupon.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isAccepted());
     }
 
     @Test
     @DisplayName("GET /result - 처리 중 상태 (202 Accepted, PROCESSING)")
     void getCouponIssueResult_Processing_Returns202Accepted() throws Exception {
-        // Given: 발급 요청만 하고 결과는 아직 저장 안 됨
-        couponQueueService.tryEnqueue(testCoupon.getId(), testUser.getId());
+        // Given: 발급 요청만 하고 결과는 저장 안 함
+        couponQueueService.enqueue(testCoupon.getId(), testUser.getId());
 
         // When & Then: PROCESSING 상태
         mockMvc.perform(get("/api/v1/users/{userId}/coupons/{couponId}/result",
@@ -173,12 +165,12 @@ class CouponControllerIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    @DisplayName("GET /result - 성공 상태 (200 OK, SUCCESS)")
+    @DisplayName("GET /result - 발급 성공 (200 OK, SUCCESS)")
     void getCouponIssueResult_Success_Returns200OK() throws Exception {
-        // Given: 발급 성공 결과 저장
+        // Given: 결과를 SUCCESS로 저장
         couponQueueService.saveResult(testUser.getId(), testCoupon.getId(), true);
 
-        // When & Then: SUCCESS 상태
+        // When & Then
         mockMvc.perform(get("/api/v1/users/{userId}/coupons/{couponId}/result",
                         testUser.getId(), testCoupon.getId())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -188,12 +180,12 @@ class CouponControllerIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    @DisplayName("GET /result - 실패 상태 (200 OK, FAILED)")
+    @DisplayName("GET /result - 발급 실패 (200 OK, FAILED)")
     void getCouponIssueResult_Failed_Returns200OK() throws Exception {
-        // Given: 발급 실패 결과 저장
+        // Given: 결과를 FAILED로 저장
         couponQueueService.saveResult(testUser.getId(), testCoupon.getId(), false);
 
-        // When & Then: FAILED 상태
+        // When & Then
         mockMvc.perform(get("/api/v1/users/{userId}/coupons/{couponId}/result",
                         testUser.getId(), testCoupon.getId())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -203,112 +195,14 @@ class CouponControllerIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    @DisplayName("발급 요청 → 결과 조회 통합 시나리오")
-    void integrationScenario_IssueAndCheckResult() throws Exception {
-        // Step 1: 발급 요청 (202 Accepted)
-        mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        testUser.getId(), testCoupon.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.position").value(1));
-
-        // Step 2: 즉시 결과 조회 (202 Accepted, PROCESSING)
-        mockMvc.perform(get("/api/v1/users/{userId}/coupons/{couponId}/result",
-                        testUser.getId(), testCoupon.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isAccepted())
-                .andExpect(content().string("PROCESSING"));
-
-        // Step 3: Worker가 처리 완료 (시뮬레이션)
-        couponQueueService.saveResult(testUser.getId(), testCoupon.getId(), true);
-
-        // Step 4: 결과 조회 (200 OK, SUCCESS)
-        mockMvc.perform(get("/api/v1/users/{userId}/coupons/{couponId}/result",
-                        testUser.getId(), testCoupon.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().string("SUCCESS"));
-    }
-
-    @Test
-    @DisplayName("여러 사용자 동시 발급 요청 - 순위 확인")
-    void multipleUsers_IssueRequest_CorrectPositions() throws Exception {
-        // Given: 3명의 사용자
-        User user1 = userRepository.save(User.create("유저1", "user1_" + System.currentTimeMillis() + "@test.com", 100000));
-        User user2 = userRepository.save(User.create("유저2", "user2_" + System.currentTimeMillis() + "@test.com", 100000));
-        User user3 = userRepository.save(User.create("유저3", "user3_" + System.currentTimeMillis() + "@test.com", 100000));
-
-        // When & Then: 순서대로 요청, 순위 확인
-        mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        user1.getId(), testCoupon.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.position").value(1));
-
-        mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        user2.getId(), testCoupon.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.position").value(2));
-
-        mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        user3.getId(), testCoupon.getId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isAccepted())
-                .andExpect(jsonPath("$.position").value(3));
-    }
-
-    @Test
-    @DisplayName("소량 쿠폰 - 동적 큐 사이즈 확인")
-    void smallCoupon_DynamicQueueSize_WorksCorrectly() throws Exception {
-        // Given: totalQuantity = 10인 쿠폰
-        Instant now = clock.instant();
-        Coupon smallCoupon = Coupon.create(
-                "SMALL_" + System.currentTimeMillis(),
-                "소량 쿠폰",
-                DiscountType.FIXED,
-                5000,
-                10, // 10명만
-                0,
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS),
-                now.minus(1, ChronoUnit.DAYS),
-                now.plus(30, ChronoUnit.DAYS)
-        );
-        smallCoupon = couponRepository.save(smallCoupon);
-
-        // When: 10명까지는 성공
-        for (int i = 1; i <= 10; i++) {
-            User user = userRepository.save(User.create(
-                    "유저" + i,
-                    "user" + i + "_" + System.currentTimeMillis() + "@test.com",
-                    100000
-            ));
-
-            mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                            user.getId(), smallCoupon.getId())
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isAccepted())
-                    .andExpect(jsonPath("$.position").value(i));
-        }
-
-        // 11번째는 실패
-        User user11 = userRepository.save(User.create(
-                "유저11",
-                "user11_" + System.currentTimeMillis() + "@test.com",
-                100000
-        ));
-
-        mockMvc.perform(post("/api/v1/users/{userId}/coupons/{couponId}/issue",
-                        user11.getId(), smallCoupon.getId())
+    @DisplayName("GET /coupons - 보유 쿠폰 조회 (200 OK)")
+    void getUserCoupons_Success_Returns200OK() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/v1/users/{userId}/coupons", testUser.getId())
+                        .param("available", "false")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(containsString("선착순 마감")));
-
-        // Cleanup
-        redisTemplate.delete("coupon:queue:" + smallCoupon.getId());
-        redisTemplate.delete("coupon:stream:" + smallCoupon.getId());
-        redisTemplate.delete("coupon:counter:" + smallCoupon.getId());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coupons").isArray());
     }
 }
