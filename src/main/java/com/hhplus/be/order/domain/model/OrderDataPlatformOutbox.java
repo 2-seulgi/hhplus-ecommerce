@@ -114,7 +114,19 @@ public class OrderDataPlatformOutbox {
     }
 
     /**
-     * 전송 성공 처리
+     * Kafka 발행 완료 처리
+     */
+    public void markAsPublished(Instant now) {
+        if (now == null) {
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
+        }
+        this.status = OutboxStatus.PUBLISHED;
+        this.updatedAt = now;
+        this.errorMessage = null; // 발행 성공 시 에러 메시지 초기화
+    }
+
+    /**
+     * 전송 성공 처리 (Consumer가 처리 완료)
      */
     public void markAsSuccess(Instant now) {
         if (now == null) {

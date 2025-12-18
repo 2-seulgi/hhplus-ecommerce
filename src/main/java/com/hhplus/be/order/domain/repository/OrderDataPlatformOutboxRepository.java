@@ -43,6 +43,14 @@ public interface OrderDataPlatformOutboxRepository {
     );
 
     /**
+     * PENDING 상태의 Outbox 조회 (Kafka 발행 대상, 최대 100개)
+     *
+     * @param status 조회할 상태
+     * @return Outbox 목록 (생성 시각 오름차순 정렬, 최대 100개)
+     */
+    List<OrderDataPlatformOutbox> findTop100ByStatusOrderByCreatedAtAsc(OutboxStatus status);
+
+    /**
      * 테스트용 전체 삭제
      */
     void deleteAll();

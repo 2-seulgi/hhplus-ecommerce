@@ -16,4 +16,5 @@ public interface OrderDataPlatformOutboxJpaRepository extends JpaRepository<Orde
             int maxRetryCount,
             Instant before
     );
+    List<OrderDataPlatformOutbox> findTop100ByStatusOrderByCreatedAtAsc(OutboxStatus status);
 }

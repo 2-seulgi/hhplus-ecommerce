@@ -36,36 +36,13 @@ public class OrderDataPlatformEventListener {
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Retryable(
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 2000),
-            retryFor = {RestClientException.class}
-    )
+    @org.springframework.context.event.EventListener
+    @Transactional
     public void handleOrderConfirmed(OrderConfirmedEvent event) {
         log.info("📤 데이터 플랫폼 전송 시작 - orderId: {}, userId: {}",
                 event.getOrderId(), event.getUserId());
-        try {
-            sendToDataPlatform(event);
-            log.info("✅ 데이터 플랫폼 전송 완료 - orderId: {}", event.getOrderId());
-        } catch (Exception e) {
-            // 실패해도 주문은 이미 완료됨
-            log.error("❌ 데이터 플랫폼 전송 실패 - orderId: {}, error: {}",
-                    event.getOrderId(), e.getMessage());
-            throw e; // 재시도를 위해 예외 재전파
-        }
-    }
 
-    /**
-     * 데이터 플랫폼으로 주문 정보 전송 (Mock 구현 + Outbox 저장)
-     *
-     * 실제 환경에서는:
-     * - RestTemplate or WebClient 사용
-     * - 실제 데이터 플랫폼 API 엔드포인트 호출
-     */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    protected void sendToDataPlatform(OrderConfirmedEvent event) {
+
         Instant now = clock.instant();
 
         // 1. 이벤트를 JSON으로 변환
@@ -84,66 +61,10 @@ public class OrderDataPlatformEventListener {
                 orderDataJson,
                 now
         );
-        outbox = outboxRepository.save(outbox);
+        outboxRepository.save(outbox);
 
-        // 3. Mock 전송 로직
-        try {
-            // TODO: 실제 API 호출로 대체
-            log.debug("📤 [Mock API] 데이터 플랫폼 전송 - orderId: {}, userId: {}, items: {}",
-                    event.getOrderId(), event.getUserId(), event.getOrderItems().size());
-
-            // Mock 지연 시간 시뮬레이션 (50ms)
-            Thread.sleep(50);
-
-            // 4. 전송 성공 처리
-            outbox.markAsSuccess(clock.instant());
-            outboxRepository.save(outbox);
-
-            log.debug("✅ Outbox 저장 완료 - outboxId: {}, orderId: {}",
-                    outbox.getId(), event.getOrderId());
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            String errorMsg = "전송 중단됨: " + e.getMessage();
-
-            // 5. 전송 실패 처리
-            outbox.markAsFailed(errorMsg, clock.instant());
-            outboxRepository.save(outbox);
-
-            throw new RuntimeException(errorMsg, e);
-
-        } catch (Exception e) {
-            String errorMsg = "전송 실패: " + e.getMessage();
-
-            // 5. 전송 실패 처리
-            outbox.markAsFailed(errorMsg, clock.instant());
-            outboxRepository.save(outbox);
-
-            throw new RuntimeException(errorMsg, e);
-        }
-    }
-
-    /**
-     * 재시도 최종 실패 시 호출되는 복구 메서드
-     *
-     * @Retryable의 모든 재시도가 실패한 후 호출됩니다.
-     * - 실패 로그 기록
-     * - 알림 시스템 연동 가능 (TODO)
-     * - Dead Letter Queue 전송 가능 (TODO)
-     *
-     * @param e 마지막 예외
-     * @param event 원본 이벤트
-     */
-    @Recover
-    public void recover(Exception e, OrderConfirmedEvent event) {
-        log.error("🚨 [최종 실패] 데이터 플랫폼 전송 실패 - 모든 재시도 소진 - orderId: {}, userId: {}, error: {}",
-                event.getOrderId(), event.getUserId(), e.getMessage(), e);
-
-        // TODO: 알림 시스템 연동 (Slack, Email 등)
-        // TODO: Dead Letter Queue로 전송
-        // TODO: 모니터링 메트릭 증가
-
-        // 현재는 로그만 남김 (실패한 Outbox 레코드는 이미 FAILED 상태로 저장됨)
-        // 나중에 스케줄러가 FAILED 레코드를 재처리할 것임
+        log.info("✅ Outbox 저장 완료 (PENDING) - orderId: {}, userId: {}",
+                event.getOrderId(), event.getUserId());
+        log.info("📌 Poller가 5초 이내에 Kafka로 발행할 예정");
     }
 }

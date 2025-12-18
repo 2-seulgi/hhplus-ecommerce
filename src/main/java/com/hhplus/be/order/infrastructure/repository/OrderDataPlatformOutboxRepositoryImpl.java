@@ -56,6 +56,14 @@ public class OrderDataPlatformOutboxRepositoryImpl implements OrderDataPlatformO
     }
 
     @Override
+    public List<OrderDataPlatformOutbox> findTop100ByStatusOrderByCreatedAtAsc(OutboxStatus status) {
+        return jpaRepository.findTop100ByStatusOrderByCreatedAtAsc(status)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public void deleteAll() {
         jpaRepository.deleteAll();
     }
