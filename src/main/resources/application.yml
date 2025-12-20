@@ -33,21 +33,11 @@ spring:
     enabled: false  # Flyway 비활성화
 
   # Kafka 설정
+  # 세부 설정은 KafkaProducerConfig, KafkaErrorHandlingConfig에서 관리
   kafka:
-    bootstrap-servers: localhost:9092  # Kafka 브로커 주소
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all  # 모든 복제본이 메시지를 받았는지 확인 (안정성 최대)
-      retries: 3  # 전송 실패 시 재시도 횟수
+    bootstrap-servers: localhost:9092  # Kafka 브로커 주소 (환경별로 다를 수 있음)
     consumer:
-      group-id: ecommerce-order-consumer-group  # 컨슈머 그룹 ID
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      auto-offset-reset: earliest  # 처음부터 메시지 읽기
-      enable-auto-commit: false  # 수동 커밋 (메시지 처리 완료 후 커밋)
-      properties:
-        spring.json.trusted.packages: "*"  # JSON 역직렬화 신뢰 패키지 (보안상 실제로는 제한 필요)
+      group-id: ecommerce-order-consumer-group  # 기본 컨슈머 그룹 ID
 
 logging:
   level:
