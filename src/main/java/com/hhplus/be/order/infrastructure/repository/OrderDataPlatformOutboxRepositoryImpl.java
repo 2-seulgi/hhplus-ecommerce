@@ -64,6 +64,17 @@ public class OrderDataPlatformOutboxRepositoryImpl implements OrderDataPlatformO
     }
 
     @Override
+    public List<OrderDataPlatformOutbox> findByStatusAndUpdatedAtBefore(
+            OutboxStatus status,
+            Instant updatedBefore
+    ) {
+        return jpaRepository.findByStatusAndUpdatedAtBefore(status, updatedBefore)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public void deleteAll() {
         jpaRepository.deleteAll();
     }

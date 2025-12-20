@@ -17,4 +17,8 @@ public interface OrderDataPlatformOutboxJpaRepository extends JpaRepository<Orde
             Instant before
     );
     List<OrderDataPlatformOutbox> findTop100ByStatusOrderByCreatedAtAsc(OutboxStatus status);
+    List<OrderDataPlatformOutbox> findByStatusAndUpdatedAtBefore(
+            OutboxStatus status,
+            Instant updatedBefore
+    );
 }
