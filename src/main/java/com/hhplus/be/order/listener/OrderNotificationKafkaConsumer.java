@@ -40,15 +40,20 @@ public class OrderNotificationKafkaConsumer {
      * order.confirmed 토픽 구독 (알림용)
      *
      * 주의: 다른 Consumer와 다른 groupId 사용
-     * - ecommerce-notification-consumer-group
-     * - 같은 메시지를 독립적으로 받기 위함
+     * - 같은 토픽을 여러 Consumer가 독립적으로 소비
+     * - 데이터 플랫폼 전송과 알림 전송이 서로 영향을 주지 않음
+     *
+     * 설정:
+     * - groupId: application.yml에서 주입 (환경별 설정 가능)
+     * - concurrency: 파티션 수에 맞춰 동적 조정 가능
      *
      * @param event 주문 완료 이벤트
      * @param ack 수동 커밋용 Acknowledgment
      */
     @KafkaListener(
             topics = "order.confirmed",
-            groupId = "ecommerce-notification-consumer-group",  // 다른 groupId!
+            groupId = "${spring.kafka.consumer.order-notification.group-id}",
+            concurrency = "${spring.kafka.consumer.order-notification.concurrency}",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void consumeOrderConfirmedForNotification(OrderConfirmedEvent event, Acknowledgment ack) {

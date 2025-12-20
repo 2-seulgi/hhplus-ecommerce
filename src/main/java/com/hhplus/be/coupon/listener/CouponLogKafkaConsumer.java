@@ -20,9 +20,17 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CouponLogKafkaConsumer {
 
+    /**
+     * coupon.issued 토픽 구독 (로그/통계용)
+     *
+     * 설정:
+     * - groupId: application.yml에서 주입 (환경별 설정 가능)
+     * - concurrency: 파티션 수에 맞춰 동적 조정 가능
+     */
     @KafkaListener(
             topics = "coupon.issued",
-            groupId = "ecommerce-coupon-log-consumer-group",
+            groupId = "${spring.kafka.consumer.coupon-log.group-id}",
+            concurrency = "${spring.kafka.consumer.coupon-log.concurrency}",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void consumeCouponIssuedForLog(CouponIssuedEvent event, Acknowledgment ack) {

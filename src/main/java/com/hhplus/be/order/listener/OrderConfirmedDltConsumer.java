@@ -26,9 +26,18 @@ public class OrderConfirmedDltConsumer {
     // 스케줄러와 동일한 재시도 한계 (일관성 유지)
     private static final int MAX_RETRY_COUNT = 10;
 
+    /**
+     * DLT 메시지 처리
+     *
+     * 설정:
+     * - groupId: application.yml에서 주입
+     * - concurrency: DLT는 순차 처리 권장 (운영 복구 작업 시 메시지 확인 용이)
+     * - containerFactory: dltListenerContainerFactory (errorHandler 없음)
+     */
     @KafkaListener(
             topics = "order.confirmed.DLT",
-            groupId = "ecommerce-order-dlt-consumer-group",
+            groupId = "${spring.kafka.consumer.order-dlt.group-id}",
+            concurrency = "${spring.kafka.consumer.order-dlt.concurrency}",
             containerFactory = "dltListenerContainerFactory"  // DLT 전용 factory 사용 (errorHandler 없음)
     )
     @Transactional

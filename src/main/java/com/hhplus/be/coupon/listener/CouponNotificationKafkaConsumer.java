@@ -28,9 +28,17 @@ import java.net.SocketTimeoutException;
 @RequiredArgsConstructor
 public class CouponNotificationKafkaConsumer {
 
+    /**
+     * coupon.issued 토픽 구독 (알림용)
+     *
+     * 설정:
+     * - groupId: application.yml에서 주입 (환경별 설정 가능)
+     * - concurrency: 파티션 수에 맞춰 동적 조정 가능
+     */
     @KafkaListener(
             topics = "coupon.issued",
-            groupId = "ecommerce-coupon-notification-consumer-group",
+            groupId = "${spring.kafka.consumer.coupon-notification.group-id}",
+            concurrency = "${spring.kafka.consumer.coupon-notification.concurrency}",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void consumeCouponIssuedForNotification(CouponIssuedEvent event, Acknowledgment ack) {

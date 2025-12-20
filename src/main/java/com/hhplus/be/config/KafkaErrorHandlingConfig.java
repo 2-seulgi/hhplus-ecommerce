@@ -100,13 +100,18 @@ public class KafkaErrorHandlingConfig {
      *
      * - Error Handler 적용 (재시도 + DLT)
      * - 수동 ACK 모드
-     * - 동시성 설정 (파티션 수에 맞춤)
+     * - 동시성 설정은 각 @KafkaListener에서 개별 지정
      *
      * 동시성 설정 가이드:
      * - concurrency: Consumer 스레드 수
-     * - 파티션 수와 동일하거나 적게 설정 (파티션 수 > concurrency)
+     * - 파티션 수와 동일하거나 적게 설정 (concurrency <= partitions)
+     * - 파티션 수보다 많으면 스레드 낭비 + 리밸런싱 빈도 증가
      * - 예: 파티션 3개 → concurrency 3 (각 스레드가 파티션 1개씩 처리)
-     * - 예: 파티션 3개 → concurrency 1 (단일 스레드가 3개 파티션 순차 처리)
+     * - 예: 파티션 6개 → concurrency 3 or 6 (CPU/DB 부담 고려)
+     *
+     * 환경별 튜닝:
+     * - application.yml에서 Consumer별 concurrency 설정 가능
+     * - 각 @KafkaListener가 해당 설정값을 읽어 적용
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
@@ -120,11 +125,8 @@ public class KafkaErrorHandlingConfig {
         // 수동 ACK 모드
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
 
-        // 동시성 설정 (Consumer 스레드 수)
-        // order.confirmed 토픽: 3 파티션 → concurrency 3
-        // coupon.issued 토픽: 3 파티션 → concurrency 3
-        // 파티션별로 독립적인 스레드가 처리 → 병렬성 최대화
-        factory.setConcurrency(3);
+        // 동시성 설정은 각 @KafkaListener에서 개별 지정
+        // (Consumer별로 다른 concurrency 값을 사용하기 위함)
 
         // 폴링 설정 (성능 튜닝)
         // - pollTimeout: 브로커에서 메시지 가져올 때 대기 시간

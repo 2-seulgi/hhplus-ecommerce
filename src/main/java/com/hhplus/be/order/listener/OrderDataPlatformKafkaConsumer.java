@@ -34,12 +34,17 @@ public class OrderDataPlatformKafkaConsumer {
     /**
      * order.confirmed 토픽 구독
      *
+     * 설정:
+     * - groupId: application.yml에서 주입 (환경별 설정 가능)
+     * - concurrency: 파티션 수에 맞춰 동적 조정 가능
+     *
      * @param event 주문 완료 이벤트
      * @param ack 수동 커밋용 Acknowledgment
      */
     @KafkaListener(
             topics = "order.confirmed",
-            groupId = "ecommerce-order-consumer-group",
+            groupId = "${spring.kafka.consumer.order-data-platform.group-id}",
+            concurrency = "${spring.kafka.consumer.order-data-platform.concurrency}",
             containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional
