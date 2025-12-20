@@ -6,6 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
+
+import java.net.SocketTimeoutException;
 
 /**
  * 주문 알림 Kafka Consumer (Presentation 레이어)
@@ -22,6 +26,10 @@ import org.springframework.stereotype.Component;
  * 동일 토픽, 다른 Consumer Group:
  * - order.confirmed 토픽을 OrderDataPlatformKafkaConsumer도 구독
  * - 같은 메시지를 두 Consumer가 독립적으로 처리
+ *
+ * 재시도 전략:
+ * - Retryable 예외 (일시적 장애): 재시도 → DLT
+ * - Non-Retryable 예외 (영구 실패): ACK + 로그
  */
 @Slf4j
 @Component
@@ -57,13 +65,66 @@ public class OrderNotificationKafkaConsumer {
             log.info("✅ [Notification Consumer] 알림 전송 완료 - orderId: {}", event.getOrderId());
 
         } catch (Exception e) {
-            log.error("❌ [Notification Consumer] 알림 전송 실패 - orderId: {}, error: {}",
-                    event.getOrderId(), e.getMessage(), e);
+            handleException(event, ack, e);
+        }
+    }
 
-            // 알림 실패는 치명적이지 않으므로 커밋
-            // (필요하면 재시도 로직 추가 가능)
+    /**
+     * 예외 타입별 처리 전략
+     *
+     * Retryable (재시도 가능):
+     * - 네트워크 타임아웃, 일시적 서버 오류
+     * - 예외를 던져서 Kafka 재시도 메커니즘 활용
+     * - 최종 실패 시 DLT로 전송
+     *
+     * Non-Retryable (재시도 불가):
+     * - 잘못된 데이터, 존재하지 않는 사용자
+     * - ACK + 로그 (메시지 소거)
+     */
+    private void handleException(OrderConfirmedEvent event, Acknowledgment ack, Exception e) {
+        log.error("❌ [Notification Consumer] 알림 전송 실패 - orderId: {}, error: {}",
+                event.getOrderId(), e.getMessage(), e);
+
+        // Retryable 예외 판단
+        if (isRetryableException(e)) {
+            log.warn("⚠️ [Notification Consumer] 재시도 가능한 오류 - 예외 전파");
+            // ACK 하지 않고 예외를 던져서 Kafka 재시도
+            throw new RuntimeException("Retryable error: " + e.getMessage(), e);
+        } else {
+            // Non-Retryable: 영구 실패로 간주
+            log.error("💀 [Notification Consumer] 영구 실패 - 메시지 소거 - orderId: {}, error: {}",
+                    event.getOrderId(), e.getMessage());
             ack.acknowledge();
         }
+    }
+
+    /**
+     * 재시도 가능한 예외인지 판단
+     *
+     * Retryable:
+     * - SocketTimeoutException: 네트워크 타임아웃
+     * - ResourceAccessException: RestTemplate 연결 실패
+     * - HttpServerErrorException: 5xx 서버 오류
+     *
+     * Non-Retryable:
+     * - IllegalArgumentException: 잘못된 데이터
+     * - NullPointerException: 필수 데이터 누락
+     * - 기타 모든 예외 (기본값)
+     */
+    private boolean isRetryableException(Exception e) {
+        // 일시적 네트워크 오류
+        if (e instanceof SocketTimeoutException) {
+            return true;
+        }
+        if (e instanceof ResourceAccessException) {
+            return true;
+        }
+        if (e instanceof HttpServerErrorException) {
+            return true;
+        }
+
+        // 그 외는 Non-Retryable (영구 실패)
+        return false;
     }
 
     /**
@@ -90,12 +151,10 @@ public class OrderNotificationKafkaConsumer {
         // 4. 앱 내 알림 테이블에 저장
         // 5. WebSocket으로 실시간 전송
 
-        // Mock 지연 (실제 API 호출 시뮬레이션)
-        try {
-            Thread.sleep(30);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // Mock: 간혹 실패하는 시뮬레이션 (테스트용)
+        // if (Math.random() < 0.1) {
+        //     throw new ResourceAccessException("Notification service timeout");
+        // }
 
         log.info("✅ [알림 발송 완료] userId: {}, orderId: {}", event.getUserId(), event.getOrderId());
     }

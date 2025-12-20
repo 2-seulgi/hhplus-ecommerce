@@ -6,6 +6,7 @@ import com.hhplus.be.order.domain.model.OrderDataPlatformOutbox;
 import com.hhplus.be.order.domain.repository.OrderDataPlatformOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -36,12 +37,11 @@ public class OrderDataPlatformEventListener {
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
-    @org.springframework.context.event.EventListener
+    @EventListener
     @Transactional
     public void handleOrderConfirmed(OrderConfirmedEvent event) {
         log.info("📤 데이터 플랫폼 전송 시작 - orderId: {}, userId: {}",
                 event.getOrderId(), event.getUserId());
-
 
         Instant now = clock.instant();
 

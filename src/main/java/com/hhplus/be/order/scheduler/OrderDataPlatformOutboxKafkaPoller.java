@@ -1,19 +1,15 @@
 package com.hhplus.be.order.scheduler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hhplus.be.order.domain.event.OrderConfirmedEvent;
 import com.hhplus.be.order.domain.model.OrderDataPlatformOutbox;
 import com.hhplus.be.order.domain.model.OutboxStatus;
 import com.hhplus.be.order.domain.repository.OrderDataPlatformOutboxRepository;
-import com.hhplus.be.order.infrastructure.producer.OrderEventKafkaProducer;
+import com.hhplus.be.order.service.OrderOutboxPublisherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
 import java.util.List;
 
 /**
@@ -21,12 +17,16 @@ import java.util.List;
  *
  * 역할:
  * - PENDING 상태의 Outbox 레코드를 주기적으로 조회
- * - Kafka Producer를 통해 메시지 발행
- * - 성공 시 PUBLISHED 상태로 변경
- * - 실패 시 FAILED 상태로 변경
+ * - OrderOutboxPublisherService에 발행 위임
+ * - 배치 처리 및 성공/실패 집계
  *
  * 실행 주기: 5초마다 (빠른 응답을 위해)
  * 배치 크기: 100개씩
+ *
+ * 설계 개선:
+ * - 트랜잭션 경계를 Service 레이어로 이동하여 명확성 확보
+ * - Self-invocation 문제 해결 (별도 빈으로 분리)
+ * - Poller는 배치 조회와 집계만 담당
  *
  * Transactional Outbox Pattern 구현
  */
@@ -35,11 +35,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderDataPlatformOutboxKafkaPoller {
     private final OrderDataPlatformOutboxRepository outboxRepository;
-    private final OrderEventKafkaProducer kafkaProducer;
-    private final ObjectMapper objectMapper;
-    private final Clock clock;
-
-    private static final int BATCH_SIZE = 100;
+    private final OrderOutboxPublisherService publisherService;
 
     /**
      * PENDING 상태의 Outbox를 Kafka로 발행 (5초마다 실행)
@@ -69,15 +65,20 @@ public class OrderDataPlatformOutboxKafkaPoller {
 
             log.info("📤 [Outbox Poller] 발행 대상 발견 - count: {}", pendingOutboxes.size());
 
-            // 각 Outbox를 Kafka로 발행
+            // 각 Outbox를 서비스에 위임하여 발행
             int successCount = 0;
             int failCount = 0;
 
             for (OrderDataPlatformOutbox outbox : pendingOutboxes) {
-                boolean success = publishOutbox(outbox);
-                if (success) {
+                try {
+                    // 서비스에 발행 위임 (트랜잭션 경계가 명확함)
+                    publisherService.publish(outbox);
                     successCount++;
-                } else {
+
+                } catch (Exception e) {
+                    // 발행 실패 시 FAILED 상태로 마킹
+                    // Retry Scheduler가 나중에 재시도함
+                    publisherService.markAsFailed(outbox, e.getMessage());
                     failCount++;
                 }
             }
@@ -86,49 +87,6 @@ public class OrderDataPlatformOutboxKafkaPoller {
 
         } catch (Exception e) {
             log.error("❌ [Outbox Poller] 스케줄러 오류", e);
-        }
-    }
-
-    /**
-     * 개별 Outbox를 Kafka로 발행
-     *
-     * @param outbox 발행할 Outbox
-     * @return 성공 여부
-     */
-    @Transactional
-    protected boolean publishOutbox(OrderDataPlatformOutbox outbox) {
-        try {
-            log.debug("📤 [Outbox Poller] 발행 시도 - outboxId: {}, orderId: {}",
-                    outbox.getId(), outbox.getOrderId());
-
-            // JSON을 OrderConfirmedEvent로 역직렬화
-            OrderConfirmedEvent event = objectMapper.readValue(
-                    outbox.getOrderData(),
-                    OrderConfirmedEvent.class
-            );
-
-            // Kafka로 발행
-            kafkaProducer.sendOrderConfirmedEvent(event);
-
-            // PUBLISHED 상태로 변경
-            outbox.markAsPublished(clock.instant());
-            outboxRepository.save(outbox);
-
-            log.info("✅ [Outbox Poller] 발행 성공 - outboxId: {}, orderId: {}",
-                    outbox.getId(), outbox.getOrderId());
-
-            return true;
-
-        } catch (Exception e) {
-            log.error("❌ [Outbox Poller] 발행 실패 - outboxId: {}, orderId: {}, error: {}",
-                    outbox.getId(), outbox.getOrderId(), e.getMessage(), e);
-
-            // FAILED 상태로 변경
-            String errorMsg = "Kafka 발행 실패: " + e.getMessage();
-            outbox.markAsFailed(errorMsg, clock.instant());
-            outboxRepository.save(outbox);
-
-            return false;
         }
     }
 }

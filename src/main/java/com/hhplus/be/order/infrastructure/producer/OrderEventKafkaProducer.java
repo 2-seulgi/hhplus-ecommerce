@@ -9,6 +9,9 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Kafka Producer - 주문 이벤트를 Kafka로 발행
@@ -29,7 +32,7 @@ public class OrderEventKafkaProducer {
     private static final String TOPIC_ORDER_STATUS_CHANGED = "order.status.changed";
 
     /**
-     * 주문 완료 이벤트를 Kafka로 발행
+     * 주문 완료 이벤트를 Kafka로 발행 (비동기)
      *
      * @param event 주문 완료 이벤트
      */
@@ -40,6 +43,52 @@ public class OrderEventKafkaProducer {
                 event.getOrderId(), TOPIC_ORDER_CONFIRMED);
 
         sendEvent(TOPIC_ORDER_CONFIRMED, key, event, "주문 완료");
+    }
+
+    /**
+     * 주문 완료 이벤트를 Kafka로 발행 (동기 - 전송 완료 대기)
+     *
+     * Outbox Poller와 같이 전송 성공을 확인해야 하는 경우 사용
+     * Timeout 5초 설정으로 무한 대기 방지
+     *
+     * @param event 주문 완료 이벤트
+     * @throws KafkaTransmissionException Kafka 전송 실패 시
+     */
+    public void sendOrderConfirmedEventSync(OrderConfirmedEvent event) {
+        String key = event.getOrderId().toString();
+
+        log.info("📤 [Kafka Producer] 주문 완료 이벤트 동기 발행 시작 - orderId: {}, topic: {}",
+                event.getOrderId(), TOPIC_ORDER_CONFIRMED);
+
+        try {
+            // Kafka로 메시지 전송 (비동기)
+            CompletableFuture<SendResult<String, Object>> future =
+                    kafkaTemplate.send(TOPIC_ORDER_CONFIRMED, key, event);
+
+            // 전송 완료 대기 (Timeout 5초)
+            SendResult<String, Object> result = future.get(5, TimeUnit.SECONDS);
+
+            log.info("✅ [Kafka Producer] 주문 완료 이벤트 전송 성공 (동기) - orderId: {}, partition: {}, offset: {}",
+                    event.getOrderId(),
+                    result.getRecordMetadata().partition(),
+                    result.getRecordMetadata().offset());
+
+        } catch (TimeoutException e) {
+            log.error("❌ [Kafka Producer] 주문 완료 이벤트 전송 타임아웃 - orderId: {}, timeout: 5s",
+                    event.getOrderId(), e);
+            throw new KafkaTransmissionException("Kafka 전송 타임아웃 (5초 초과): orderId=" + event.getOrderId(), e);
+
+        } catch (ExecutionException e) {
+            log.error("❌ [Kafka Producer] 주문 완료 이벤트 전송 실패 - orderId: {}, error: {}",
+                    event.getOrderId(), e.getCause().getMessage(), e);
+            throw new KafkaTransmissionException("Kafka 전송 실패: " + e.getCause().getMessage(), e);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("❌ [Kafka Producer] 주문 완료 이벤트 전송 중단됨 - orderId: {}",
+                    event.getOrderId(), e);
+            throw new KafkaTransmissionException("Kafka 전송 중단됨: orderId=" + event.getOrderId(), e);
+        }
     }
 
     /**
@@ -85,6 +134,15 @@ public class OrderEventKafkaProducer {
             log.error("❌ [Kafka Producer] {} 이벤트 발행 중 예외 발생 - key: {}, error: {}",
                     eventType, key, e.getMessage(), e);
             throw new RuntimeException("Kafka 메시지 발행 실패: " + eventType, e);
+        }
+    }
+
+    /**
+     * Kafka 전송 실패 예외
+     */
+    public static class KafkaTransmissionException extends RuntimeException {
+        public KafkaTransmissionException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 }
