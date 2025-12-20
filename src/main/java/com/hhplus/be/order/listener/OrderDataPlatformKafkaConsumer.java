@@ -2,6 +2,7 @@ package com.hhplus.be.order.listener;
 
 import com.hhplus.be.order.domain.event.OrderConfirmedEvent;
 import com.hhplus.be.order.domain.model.OrderDataPlatformOutbox;
+import com.hhplus.be.order.domain.model.OutboxStatus;
 import com.hhplus.be.order.domain.repository.OrderDataPlatformOutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,9 +21,15 @@ import java.time.Clock;
  * - 외부 데이터 플랫폼으로 전송
  * - Outbox 상태를 SUCCESS로 업데이트
  *
+ * 멱등성 보장:
+ * - Outbox 상태 기반 중복 처리 방지
+ * - Consumer 리밸런싱, 재시작 등으로 동일 메시지 중복 수신 시
+ * - Outbox 상태가 이미 SUCCESS면 처리 skip (멱등성 보장)
+ * - Producer idempotence + Consumer 멱등 처리 = Exactly-Once 보장
+ *
  * 실패 처리:
- * - 재시도: 3회 (Spring Kafka 설정)
- * - 최종 실패 시: DLQ(Dead Letter Queue)로 전송
+ * - 재시도: 2회 (KafkaErrorHandler 설정)
+ * - 최종 실패 시: DLT(Dead Letter Topic)로 전송
  */
 @Slf4j
 @Component
@@ -53,13 +60,22 @@ public class OrderDataPlatformKafkaConsumer {
             log.info("📥 [Kafka Consumer] 주문 완료 이벤트 수신 - orderId: {}, userId: {}",
                     event.getOrderId(), event.getUserId());
 
+            // 멱등성 보장: Outbox 상태 확인
+            OrderDataPlatformOutbox outbox = outboxRepository.findByOrderId(event.getOrderId())
+                    .orElseThrow(() -> new IllegalStateException("Outbox not found: " + event.getOrderId()));
+
+            // 이미 처리 완료된 메시지인지 확인 (중복 수신 방지)
+            if (outbox.getStatus() == OutboxStatus.SUCCESS) {
+                log.warn("⚠️ [Kafka Consumer] 중복 메시지 수신 - 이미 처리 완료 - orderId: {}, status: SUCCESS",
+                        event.getOrderId());
+                ack.acknowledge();  // 중복 메시지는 ACK만 하고 종료
+                return;
+            }
+
             // 실제 데이터 플랫폼 전송 로직
             sendToDataPlatform(event);
 
             // Outbox 상태 업데이트 (PUBLISHED → SUCCESS)
-            OrderDataPlatformOutbox outbox = outboxRepository.findByOrderId(event.getOrderId())
-                    .orElseThrow(() -> new IllegalStateException("Outbox not found: " + event.getOrderId()));
-
             outbox.markAsSuccess(clock.instant());
             outboxRepository.save(outbox);
 

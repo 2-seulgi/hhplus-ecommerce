@@ -22,6 +22,13 @@ import java.net.SocketTimeoutException;
  * 재시도 전략:
  * - Retryable 예외 (일시적 장애): 재시도 → DLT
  * - Non-Retryable 예외 (영구 실패): ACK + 로그
+ *
+ * 멱등성 전략:
+ * - 알림은 Best Effort 전송 (중복 전송 허용)
+ * - 사용자에게 동일 쿠폰 발급 알림이 여러 번 가더라도 비즈니스 영향 없음
+ * - 핵심 비즈니스 로직(쿠폰 발급)은 이미 DB 트랜잭션에서 처리 완료 상태
+ * - Consumer 리밸런싱/재시작 시 중복 수신 가능하지만, 알림 특성상 허용 가능
+ * - 만약 엄격한 중복 방지가 필요하다면: 별도 알림 이력 테이블 + 중복 체크 추가 필요
  */
 @Slf4j
 @Component
