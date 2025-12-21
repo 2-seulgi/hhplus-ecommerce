@@ -104,6 +104,10 @@ public class UserCouponService {
      * 3. available=true면 사용 가능한 쿠폰만 필터링
      *    - used=false
      *    - 사용 기간 내 (useStartAt ~ useEndAt)
+     *
+     * 성능 최적화:
+     * - N+1 쿼리 문제 해결: couponRepository.findAllById() 사용 (IN 쿼리)
+     * - 쿼리 2번: userCoupons 조회 1번 + coupons IN 쿼리 1번
      */
     @Transactional(readOnly = true)
     public GetUserCouponsResult getUserCoupons(GetUserCouponsQuery query) {
@@ -114,13 +118,33 @@ public class UserCouponService {
         // 2. 사용자의 쿠폰 조회
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(query.userId());
 
+        // 빈 리스트 처리
+        if (userCoupons.isEmpty()) {
+            return new GetUserCouponsResult(List.of());
+        }
+
+        // 3. 모든 couponId를 추출하여 한 번에 조회 (N+1 문제 해결)
+        List<Long> couponIds = userCoupons.stream()
+                .map(UserCoupon::getCouponId)
+                .distinct()
+                .toList();
+
+        // 4. IN 쿼리로 모든 쿠폰 정보 한 번에 조회
+        List<Coupon> coupons = couponRepository.findAllById(couponIds);
+
+        // 5. Map으로 변환하여 O(1) 조회
+        java.util.Map<Long, Coupon> couponMap = coupons.stream()
+                .collect(java.util.stream.Collectors.toMap(Coupon::getId, c -> c));
+
         Instant now = clock.instant();
 
-        // 3. 각 UserCoupon에 대해 Coupon 정보 조합 및 필터링
+        // 6. UserCoupon과 Coupon 정보 조합 및 필터링
         List<GetUserCouponsResult.UserCouponInfo> couponInfos = userCoupons.stream()
                 .map(uc -> {
-                    Coupon coupon = couponRepository.findById(uc.getCouponId())
-                            .orElseThrow(() -> new ResourceNotFoundException("쿠폰을 찾을 수 없습니다"));
+                    Coupon coupon = couponMap.get(uc.getCouponId());
+                    if (coupon == null) {
+                        throw new ResourceNotFoundException("쿠폰을 찾을 수 없습니다: " + uc.getCouponId());
+                    }
                     return GetUserCouponsResult.UserCouponInfo.from(uc, coupon);
                 })
                 .filter(info -> {

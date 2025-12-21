@@ -48,6 +48,13 @@ public class CouponRepositoryImpl implements com.hhplus.be.coupon.domain.reposit
     }
 
     @Override
+    public List<Coupon> findAllById(List<Long> ids) {
+        return couponJpaRepository.findAllById(ids).stream()
+                .map(couponMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Coupon> findAllByIssuePeriod(Instant now) {
         return couponJpaRepository.findAllByIssuePeriod(now).stream()
                 .map(couponMapper::toDomain)
