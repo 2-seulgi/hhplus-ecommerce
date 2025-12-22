@@ -1,10 +1,13 @@
 package com.hhplus.be.coupon.consumer;
 
+import com.hhplus.be.coupon.domain.event.CouponIssuedEvent;
 import com.hhplus.be.coupon.domain.model.Coupon;
 import com.hhplus.be.coupon.domain.repository.CouponRepository;
+import com.hhplus.be.coupon.infrastructure.producer.CouponEventProducer;
 import com.hhplus.be.coupon.service.CouponQueueService;
 import com.hhplus.be.usercoupon.service.UserCouponService;
 import com.hhplus.be.usercoupon.service.dto.IssueCouponCommand;
+import com.hhplus.be.usercoupon.service.dto.IssueCouponResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +49,7 @@ public class CouponIssueConsumer {
     private final UserCouponService userCouponService;
     private final CouponQueueService couponQueueService;
     private final CouponRepository couponRepository;
+    private final CouponEventProducer couponEventProducer;
     private final Clock clock;
 
     @Value("${coupon.stream.consumer-group:coupon-consumer-group}")
@@ -160,11 +164,21 @@ public class CouponIssueConsumer {
 
             // 4. 실제 쿠폰 발급
             IssueCouponCommand command = new IssueCouponCommand(userId, couponId);
-            userCouponService.issueCoupon(command);
+            IssueCouponResult result = userCouponService.issueCoupon(command);
 
             // 5. 성공 결과 저장
             couponQueueService.saveResult(userId, couponId, true);
             log.info("쿠폰 발급 성공 - userId: {}, couponId: {}", userId, couponId);
+
+            // 6. Kafka로 쿠폰 발급 이벤트 발행
+            CouponIssuedEvent event = CouponIssuedEvent.of(
+                    result.userCouponId(),
+                    userId,
+                    couponId,
+                    coupon.getName(),
+                    clock.instant()
+            );
+            couponEventProducer.publish(event);
 
             // ACK 전송 (처리 완료)
             redisTemplate.opsForStream().acknowledge(streamKey, consumerGroup, messageId);

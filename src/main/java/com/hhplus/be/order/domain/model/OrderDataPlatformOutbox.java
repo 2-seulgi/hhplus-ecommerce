@@ -114,7 +114,49 @@ public class OrderDataPlatformOutbox {
     }
 
     /**
-     * 전송 성공 처리
+     * Kafka 전송 시작 (PUBLISHING 상태로 변경)
+     *
+     * 목적: DB 트랜잭션과 Kafka 전송을 분리하기 위해
+     * - PENDING → PUBLISHING: 전송 시작 표시 (짧은 트랜잭션)
+     * - Kafka 전송 (트랜잭션 밖에서 네트워크 대기)
+     * - PUBLISHING → PUBLISHED: 전송 성공 (짧은 트랜잭션)
+     *
+     * Stuck 방지:
+     * - 프로세스가 전송 중 죽으면 PUBLISHING 상태로 남음
+     * - Stuck PUBLISHING Scheduler가 timeout 기준으로 FAILED 처리
+     */
+    public void markAsPublishing(Instant now) {
+        if (now == null) {
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
+        }
+        if (this.status != OutboxStatus.PENDING) {
+            throw new IllegalStateException(
+                "PENDING 상태에서만 PUBLISHING으로 변경 가능합니다. 현재 상태: " + this.status
+            );
+        }
+        this.status = OutboxStatus.PUBLISHING;
+        this.updatedAt = now;
+    }
+
+    /**
+     * Kafka 발행 완료 처리
+     */
+    public void markAsPublished(Instant now) {
+        if (now == null) {
+            throw new IllegalArgumentException("현재 시각은 필수입니다");
+        }
+        if (this.status != OutboxStatus.PUBLISHING) {
+            throw new IllegalStateException(
+                "PUBLISHING 상태에서만 PUBLISHED로 변경 가능합니다. 현재 상태: " + this.status
+            );
+        }
+        this.status = OutboxStatus.PUBLISHED;
+        this.updatedAt = now;
+        this.errorMessage = null; // 발행 성공 시 에러 메시지 초기화
+    }
+
+    /**
+     * 전송 성공 처리 (Consumer가 처리 완료)
      */
     public void markAsSuccess(Instant now) {
         if (now == null) {

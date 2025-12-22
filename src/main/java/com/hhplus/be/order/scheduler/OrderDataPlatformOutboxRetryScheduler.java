@@ -23,7 +23,6 @@ import java.util.List;
  * 역할:
  * - FAILED 상태의 Outbox 레코드를 주기적으로 조회
  * - 재처리 시도 (재시도 횟수 제한)
- * - 성공 시 SUCCESS 상태로 변경
  * - 실패 시 재시도 횟수 증가 및 FAILED 유지
  *
  * 실행 주기: 10분마다
@@ -37,7 +36,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderDataPlatformOutboxRetryScheduler {
     private final OrderDataPlatformOutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
     private final Clock clock;
 
     private static final int MAX_RETRY_COUNT = 10;
@@ -106,43 +104,27 @@ public class OrderDataPlatformOutboxRetryScheduler {
     @Transactional
     protected boolean retryOutbox(OrderDataPlatformOutbox outbox) {
         try {
+            Instant now = clock.instant();
+
             log.debug("재처리 시도 - outboxId: {}, orderId: {}, retryCount: {}",
                     outbox.getId(), outbox.getOrderId(), outbox.getRetryCount());
 
             // 재시도 횟수 증가
             outbox.incrementRetry(clock.instant());
-            outbox.markAsPending(clock.instant());
+
+            // 2) 다시 발행 대기 상태로 변경 (Poller가 다시 Kafka 발행하도록)
+            outbox.markAsPending(now);
+
             outboxRepository.save(outbox);
 
-            // Mock 전송 재시도
-            // TODO: 실제 API 호출로 대체
-            Thread.sleep(50);
-
-            // 성공 처리
-            outbox.markAsSuccess(clock.instant());
-            outboxRepository.save(outbox);
-
-            log.info("✅ 재처리 성공 - outboxId: {}, orderId: {}, retryCount: {}",
+            log.info("🔁 재발행 큐잉 완료 - outboxId: {}, orderId: {}, retryCount: {}",
                     outbox.getId(), outbox.getOrderId(), outbox.getRetryCount());
 
             return true;
 
         } catch (Exception e) {
-            log.warn("❌ 재처리 실패 - outboxId: {}, orderId: {}, retryCount: {}, error: {}",
-                    outbox.getId(), outbox.getOrderId(), outbox.getRetryCount(), e.getMessage());
-
-            // 실패 처리
-            String errorMsg = "재처리 실패 (시도 " + outbox.getRetryCount() + "회): " + e.getMessage();
-            outbox.markAsFailed(errorMsg, clock.instant());
-            outboxRepository.save(outbox);
-
-            // 최대 재시도 횟수 도달 시 알림
-            if (outbox.getRetryCount() >= MAX_RETRY_COUNT) {
-                log.error("🚨 [최대 재시도 도달] 데이터 플랫폼 전송 영구 실패 - outboxId: {}, orderId: {}, userId: {}",
-                        outbox.getId(), outbox.getOrderId(), outbox.getUserId());
-                // TODO: 알림 시스템 연동 (Slack, Email 등)
-            }
-
+            log.warn("❌ 재발행 큐잉 실패 - outboxId: {}, orderId: {}, error: {}",
+                    outbox.getId(), outbox.getOrderId(), e.getMessage(), e);
             return false;
         }
     }

@@ -1,0 +1,115 @@
+package com.hhplus.be.order.listener;
+
+import com.hhplus.be.order.domain.event.OrderConfirmedEvent;
+import com.hhplus.be.order.domain.model.OrderDataPlatformOutbox;
+import com.hhplus.be.order.domain.model.OutboxStatus;
+import com.hhplus.be.order.domain.repository.OrderDataPlatformOutboxRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+
+/**
+ * 주문 완료 이벤트 Kafka Consumer (Presentation 레이어)
+ *
+ * 역할:
+ * - order.confirmed 토픽에서 메시지 수신
+ * - 외부 데이터 플랫폼으로 전송
+ * - Outbox 상태를 SUCCESS로 업데이트
+ *
+ * 멱등성 보장:
+ * - Outbox 상태 기반 중복 처리 방지
+ * - Consumer 리밸런싱, 재시작 등으로 동일 메시지 중복 수신 시
+ * - Outbox 상태가 이미 SUCCESS면 처리 skip (멱등성 보장)
+ * - Producer idempotence + Consumer 멱등 처리 = Exactly-Once 보장
+ *
+ * 실패 처리:
+ * - 재시도: 2회 (KafkaErrorHandler 설정)
+ * - 최종 실패 시: DLT(Dead Letter Topic)로 전송
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class OrderDataPlatformKafkaConsumer {
+    private final OrderDataPlatformOutboxRepository outboxRepository;
+    private final Clock clock;
+
+    /**
+     * order.confirmed 토픽 구독
+     *
+     * 설정:
+     * - groupId: application.yml에서 주입 (환경별 설정 가능)
+     * - concurrency: 파티션 수에 맞춰 동적 조정 가능
+     *
+     * @param event 주문 완료 이벤트
+     * @param ack 수동 커밋용 Acknowledgment
+     */
+    @KafkaListener(
+            topics = "order.confirmed",
+            groupId = "${spring.kafka.consumer.order-data-platform.group-id}",
+            concurrency = "${spring.kafka.consumer.order-data-platform.concurrency}",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    @Transactional
+    public void consumeOrderConfirmed(OrderConfirmedEvent event, Acknowledgment ack) {
+        try {
+            log.info("📥 [Kafka Consumer] 주문 완료 이벤트 수신 - orderId: {}, userId: {}",
+                    event.getOrderId(), event.getUserId());
+
+            // 멱등성 보장: Outbox 상태 확인
+            OrderDataPlatformOutbox outbox = outboxRepository.findByOrderId(event.getOrderId())
+                    .orElseThrow(() -> new IllegalStateException("Outbox not found: " + event.getOrderId()));
+
+            // 이미 처리 완료된 메시지인지 확인 (중복 수신 방지)
+            if (outbox.getStatus() == OutboxStatus.SUCCESS) {
+                log.warn("⚠️ [Kafka Consumer] 중복 메시지 수신 - 이미 처리 완료 - orderId: {}, status: SUCCESS",
+                        event.getOrderId());
+                ack.acknowledge();  // 중복 메시지는 ACK만 하고 종료
+                return;
+            }
+
+            // 실제 데이터 플랫폼 전송 로직
+            sendToDataPlatform(event);
+
+            // Outbox 상태 업데이트 (PUBLISHED → SUCCESS)
+            outbox.markAsSuccess(clock.instant());
+            outboxRepository.save(outbox);
+
+            // 수동 커밋 (메시지 처리 완료 확인)
+            ack.acknowledge();
+
+            log.info("✅ [Kafka Consumer] 처리 완료 - orderId: {}", event.getOrderId());
+
+        } catch (Exception e) {
+            log.error("❌ [Kafka Consumer] 처리 실패 - orderId: {}, error: {}",
+                    event.getOrderId(), e.getMessage(), e);
+
+            // 예외를 다시 던져서 Kafka 재시도 메커니즘 작동
+            throw new RuntimeException("주문 완료 이벤트 처리 실패", e);
+        }
+    }
+
+    /**
+     * 실제 데이터 플랫폼으로 전송
+     * TODO: RestTemplate 또는 WebClient로 실제 API 호출
+     */
+    private void sendToDataPlatform(OrderConfirmedEvent event) {
+        try {
+            log.info("📤 [Data Platform] 전송 중 - orderId: {}, userId: {}, items: {}",
+                    event.getOrderId(), event.getUserId(), event.getOrderItems().size());
+
+            // Mock 전송 (실제 환경에서는 API 호출)
+            Thread.sleep(50);
+
+            log.info("✅ [Data Platform] 전송 완료 - orderId: {}", event.getOrderId());
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("전송 중단됨", e);
+        }
+    }
+}

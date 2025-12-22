@@ -8,7 +8,6 @@ import com.hhplus.be.order.service.OrderService;
 import com.hhplus.be.order.service.dto.PaymentCommand;
 import com.hhplus.be.order.service.dto.PaymentResult;
 import com.hhplus.be.orderitem.domain.model.OrderItem;
-import com.hhplus.be.point.service.PointService;
 import com.hhplus.be.product.service.ProductStockService;
 import com.hhplus.be.user.domain.model.User;
 import com.hhplus.be.coupon.service.CouponService;
@@ -37,8 +36,7 @@ class ProcessPaymentUseCaseTest {
     @Mock private OrderService orderService;
     @Mock private CouponService couponService;
     @Mock private ProductStockService productStockService;
-    @Mock private PointService pointService;
-    @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock private com.hhplus.be.order.service.PaymentTransactionService paymentTransactionService;
 
     private ProcessPaymentUseCase processPaymentUseCase;
 
@@ -53,9 +51,8 @@ class ProcessPaymentUseCaseTest {
                 orderService,
                 couponService,
                 productStockService,
-                pointService,
-                clock,
-                eventPublisher
+                paymentTransactionService,
+                clock
         );
     }
 
@@ -72,6 +69,7 @@ class ProcessPaymentUseCaseTest {
 
         Order order = Order.create(userId, totalAmount, fixedNow.plusSeconds(1800));
         assignOrderId(order, orderId);
+        order.confirm(totalAmount, fixedNow); // Order 상태를 CONFIRMED로 변경
 
         List<OrderItem> items = List.of(
                 OrderItem.create(orderId, 1L, "상품A", 10000, 2),
@@ -84,16 +82,17 @@ class ProcessPaymentUseCaseTest {
         when(orderService.getOrderItems(orderId)).thenReturn(items);
         when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
                 .thenReturn(DiscountCalculationResult.noDiscount());
-        when(pointService.deductPoints(userId, totalAmount)).thenReturn(user);
 
-        // confirmOrder 호출 시 실제 Order 객체 변경
-        doAnswer(invocation -> {
-            Order o = invocation.getArgument(0);
-            int finalAmt = invocation.getArgument(1);
-            Instant paidAt = invocation.getArgument(2);
-            o.confirm(finalAmt, paidAt);
-            return null;
-        }).when(orderService).confirmOrder(any(Order.class), anyInt(), any(Instant.class));
+        // PaymentTransactionService Mock 설정
+        PaymentResult expectedResult = PaymentResult.from(order, user, 0);
+        when(paymentTransactionService.executeInTransaction(
+                eq(command),
+                eq(order),
+                eq(items),
+                any(DiscountCalculation.class),
+                eq(totalAmount),
+                eq(fixedNow)
+        )).thenReturn(expectedResult);
 
         // When
         PaymentResult result = processPaymentUseCase.execute(command);
@@ -111,10 +110,14 @@ class ProcessPaymentUseCaseTest {
         verify(orderService).getOrderItems(orderId);
         verify(couponService).validateAndCalculateDiscount(any(ValidateDiscountCommand.class));
         verify(productStockService).decreaseStocksWithLock(items);
-        verify(pointService).deductPoints(userId, totalAmount);
-        verify(orderService).confirmOrder(order, totalAmount, fixedNow);
-        verify(orderService).saveDiscountInfo(eq(orderId), any(DiscountCalculation.class));
-        verify(pointService).recordUseHistory(userId, totalAmount, user.getBalance());
+        verify(paymentTransactionService).executeInTransaction(
+                eq(command),
+                eq(order),
+                eq(items),
+                any(DiscountCalculation.class),
+                eq(totalAmount),
+                eq(fixedNow)
+        );
     }
 
     @Test
@@ -133,6 +136,7 @@ class ProcessPaymentUseCaseTest {
 
         Order order = Order.create(userId, totalAmount, fixedNow.plusSeconds(1800));
         assignOrderId(order, orderId);
+        order.confirm(finalAmount, fixedNow); // Order 상태를 CONFIRMED로 변경
 
         List<OrderItem> items = List.of(
                 OrderItem.create(orderId, 1L, "상품A", 10000, 2)
@@ -145,16 +149,17 @@ class ProcessPaymentUseCaseTest {
         when(orderService.getOrderItems(orderId)).thenReturn(items);
         when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
                 .thenReturn(discountResult);
-        when(pointService.deductPoints(userId, finalAmount)).thenReturn(user);
 
-        // confirmOrder 호출 시 실제 Order 객체 변경
-        doAnswer(invocation -> {
-            Order o = invocation.getArgument(0);
-            int finalAmt = invocation.getArgument(1);
-            Instant paidAt = invocation.getArgument(2);
-            o.confirm(finalAmt, paidAt);
-            return null;
-        }).when(orderService).confirmOrder(any(Order.class), anyInt(), any(Instant.class));
+        // PaymentTransactionService Mock 설정
+        PaymentResult expectedResult = PaymentResult.from(order, user, discountAmount);
+        when(paymentTransactionService.executeInTransaction(
+                eq(command),
+                eq(order),
+                eq(items),
+                any(DiscountCalculation.class),
+                eq(finalAmount),
+                eq(fixedNow)
+        )).thenReturn(expectedResult);
 
         // When
         PaymentResult result = processPaymentUseCase.execute(command);
@@ -165,9 +170,16 @@ class ProcessPaymentUseCaseTest {
         assertThat(result.finalAmount()).isEqualTo(finalAmount);
         assertThat(result.discountAmount()).isEqualTo(discountAmount);
 
-        // Verify coupon was marked as used
-        verify(couponService).markAsUsed(discountResult.userCouponId());
-        verify(orderService).saveDiscountInfo(eq(orderId), any(DiscountCalculation.class));
+        // Verify
+        verify(productStockService).decreaseStocksWithLock(items);
+        verify(paymentTransactionService).executeInTransaction(
+                eq(command),
+                eq(order),
+                eq(items),
+                any(DiscountCalculation.class),
+                eq(finalAmount),
+                eq(fixedNow)
+        );
     }
 
     @Test
@@ -187,7 +199,7 @@ class ProcessPaymentUseCaseTest {
                 .hasMessageContaining("만료");
 
         verify(orderService).validateForPayment(userId, orderId, fixedNow);
-        verifyNoInteractions(couponService, productStockService, pointService);
+        verifyNoInteractions(couponService, productStockService, paymentTransactionService);
     }
 
     @Test
@@ -216,7 +228,7 @@ class ProcessPaymentUseCaseTest {
 
         verify(orderService).validateForPayment(userId, orderId, fixedNow);
         verify(couponService).validateAndCalculateDiscount(any(ValidateDiscountCommand.class));
-        verifyNoInteractions(productStockService, pointService);
+        verifyNoInteractions(productStockService, paymentTransactionService);
     }
 
     @Test
@@ -240,8 +252,16 @@ class ProcessPaymentUseCaseTest {
         when(orderService.getOrderItems(orderId)).thenReturn(items);
         when(couponService.validateAndCalculateDiscount(any(ValidateDiscountCommand.class)))
                 .thenReturn(DiscountCalculationResult.noDiscount());
-        when(pointService.deductPoints(userId, totalAmount))
-                .thenThrow(new InsufficientBalanceException("포인트 잔액 부족"));
+
+        // PaymentTransactionService에서 예외 발생
+        when(paymentTransactionService.executeInTransaction(
+                eq(command),
+                eq(order),
+                eq(items),
+                any(DiscountCalculation.class),
+                eq(totalAmount),
+                eq(fixedNow)
+        )).thenThrow(new InsufficientBalanceException("포인트 잔액 부족"));
 
         // When & Then
         assertThatThrownBy(() -> processPaymentUseCase.execute(command))
@@ -249,10 +269,16 @@ class ProcessPaymentUseCaseTest {
                 .hasMessageContaining("부족");
 
         verify(productStockService).decreaseStocksWithLock(items);
-        verify(pointService).deductPoints(userId, totalAmount);
+        verify(paymentTransactionService).executeInTransaction(
+                eq(command),
+                eq(order),
+                eq(items),
+                any(DiscountCalculation.class),
+                eq(totalAmount),
+                eq(fixedNow)
+        );
         // 보상 트랜잭션으로 재고 복원도 호출됨
         verify(productStockService).increaseStocksWithLock(items);
-        verify(orderService, never()).confirmOrder(any(), anyInt(), any());
     }
 
     @Test
@@ -285,8 +311,7 @@ class ProcessPaymentUseCaseTest {
                 .hasMessageContaining("재고");
 
         verify(productStockService).decreaseStocksWithLock(items);
-        verifyNoInteractions(pointService);
-        verify(orderService, never()).confirmOrder(any(), anyInt(), any());
+        verifyNoInteractions(paymentTransactionService);
     }
 
     // Helper method for ID assignment

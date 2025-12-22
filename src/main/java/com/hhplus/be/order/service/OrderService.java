@@ -206,16 +206,19 @@ public class OrderService {
 
         int refundAmount = order.getFinalAmount();
         user.charge(refundAmount);
+        users.save(user); // 도메인 객체 변경 후 명시적 저장
 
         // 4. 재고 복구
         for (OrderItem item : items) {
             Product product = products.findById(item.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("상품을 찾을 수 없습니다"));
             product.increaseStock(item.getQuantity());
+            products.save(product); // 도메인 객체 변경 후 명시적 저장
         }
 
         // 5. 주문 상태 변경 (CONFIRMED → REFUNDED)
         order.refund(now);
+        orderRepository.save(order); // 도메인 객체 변경 후 명시적 저장
 
         // 6. 포인트 히스토리 기록
         Point pointHistory = Point.refund(command.userId(), refundAmount, user.getBalance());
@@ -251,6 +254,7 @@ public class OrderService {
 
         // 2. 주문 취소 (PENDING → CANCELLED)
         order.cancel(now);
+        orderRepository.save(order); // 도메인 객체 변경 후 명시적 저장
     }
 
     /**

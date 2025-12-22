@@ -1,3 +1,6 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: ecommerce
@@ -28,6 +31,31 @@ spring:
 
   flyway:
     enabled: false  # Flyway 비활성화
+
+  # Kafka 설정
+  # 세부 설정은 KafkaProducerConfig, KafkaErrorHandlingConfig에서 관리
+  kafka:
+    bootstrap-servers: localhost:9092  # Kafka 브로커 주소 (환경별로 다를 수 있음)
+    consumer:
+      # Consumer별 설정 (환경별 튜닝 가능)
+      # concurrency: 파티션 수 이하로 설정 (파티션 수보다 많으면 스레드 낭비)
+      order-data-platform:
+        group-id: ecommerce-order-consumer-group
+        concurrency: 3  # order.confirmed 토픽 파티션 수에 맞춤
+      order-notification:
+        group-id: ecommerce-notification-consumer-group
+        concurrency: 3  # order.confirmed 토픽 파티션 수에 맞춤
+      coupon-notification:
+        group-id: ecommerce-coupon-notification-consumer-group
+        concurrency: 3  # coupon.issued 토픽 파티션 수에 맞춤
+      coupon-log:
+        group-id: ecommerce-coupon-log-consumer-group
+        concurrency: 3  # coupon.issued 토픽 파티션 수에 맞춤
+      order-dlt:
+        group-id: ecommerce-order-dlt-consumer-group
+        concurrency: 1  # DLT는 단일 스레드 처리 권장 (순차 복구)
+      # 기본 설정 (fallback)
+      default-concurrency: 3
 
 logging:
   level:

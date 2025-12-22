@@ -106,6 +106,7 @@ public class PointService {
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다"));
 
         user.refund(amount);
+        userRepository.save(user); // 도메인 객체 변경 후 명시적 저장
         return user;
     }
 

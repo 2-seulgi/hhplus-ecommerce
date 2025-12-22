@@ -35,6 +35,9 @@ dependencies {
     implementation 'org.redisson:redisson-spring-boot-starter:3.24.3'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
 
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
     // ShedLock - 스케줄러 중복 실행 방지
     implementation 'net.javacrumbs.shedlock:shedlock-spring:5.10.0'
     implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:5.10.0'

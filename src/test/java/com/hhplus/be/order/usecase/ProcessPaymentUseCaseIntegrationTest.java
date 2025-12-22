@@ -86,10 +86,6 @@ class ProcessPaymentUseCaseIntegrationTest extends IntegrationTestSupport {
     @Autowired
     private Clock clock;
 
-    @Autowired
-    private javax.sql.DataSource dataSource;
-
-
     private User testUser;
     private Product testProduct;
 

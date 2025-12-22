@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 검증 항목:
  * - FAILED 상태의 Outbox 재처리
  * - 재시도 횟수 증가
- * - 성공 시 SUCCESS 상태 변경
  * - 재시도 조건 (5분 경과, 10회 미만)
  */
 @SpringBootTest
